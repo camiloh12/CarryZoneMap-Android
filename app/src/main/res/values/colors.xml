@@ -1,0 +1,5 @@
+<resources>
+    <color name="green_allowed">#2E7D32</color>
+    <color name="red_banned">#C62828</color>
+    <color name="yellow_uncertain">#F9A825</color>
+</resources>
