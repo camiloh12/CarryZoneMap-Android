@@ -1,6 +1,8 @@
 package com.carryzonemap.app.di
 
 import com.carryzonemap.app.data.repository.PinRepositoryImpl
+import com.carryzonemap.app.data.repository.SupabaseAuthRepository
+import com.carryzonemap.app.domain.repository.AuthRepository
 import com.carryzonemap.app.domain.repository.PinRepository
 import dagger.Binds
 import dagger.Module
@@ -20,4 +22,11 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindPinRepository(pinRepositoryImpl: PinRepositoryImpl): PinRepository
+
+    /**
+     * Binds the SupabaseAuthRepository to the AuthRepository interface.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindAuthRepository(supabaseAuthRepository: SupabaseAuthRepository): AuthRepository
 }
