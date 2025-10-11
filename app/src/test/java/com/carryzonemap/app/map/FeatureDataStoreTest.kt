@@ -2,22 +2,29 @@ package com.carryzonemap.app.map
 
 import android.content.Context
 import android.content.SharedPreferences
+import org.json.JSONArray
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.maplibre.geojson.Feature
 import org.mockito.ArgumentCaptor
 import org.mockito.Captor
 import org.mockito.Mock
-import org.mockito.junit.MockitoJUnitRunner
-import org.mockito.kotlin.*
-import org.maplibre.geojson.Feature
-import org.json.JSONArray
-import org.junit.Assert.*
 import org.mockito.Mockito.lenient
+import org.mockito.junit.MockitoJUnitRunner
+import org.mockito.kotlin.any
+import org.mockito.kotlin.capture
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.never
+import org.mockito.kotlin.times
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 
 @RunWith(MockitoJUnitRunner::class)
 class FeatureDataStoreTest {
-
     @Mock
     private lateinit var mockContext: Context
 
@@ -63,9 +70,10 @@ class FeatureDataStoreTest {
     @Test
     fun `init with saved data loads features and calls onDataChanged`() {
         // Arrange: Valid JSON data in SharedPreferences
-        val json = JSONArray()
-            .put(PersistedFeature("id1", 10.0, 20.0, 0).toJSONObject())
-            .toString()
+        val json =
+            JSONArray()
+                .put(PersistedFeature("id1", 10.0, 20.0, 0).toJSONObject())
+                .toString()
         whenever(mockPrefs.getString(any(), eq(null))).thenReturn(json)
 
         // Act
@@ -102,9 +110,10 @@ class FeatureDataStoreTest {
     @Test
     fun `cycleFeatureColorState updates feature and saves`() {
         // Arrange: Start with one feature in the store
-        val initialJson = JSONArray()
-            .put(PersistedFeature("id1", 10.0, 20.0, FeatureDataStore.COLOR_STATE_GREEN).toJSONObject())
-            .toString()
+        val initialJson =
+            JSONArray()
+                .put(PersistedFeature("id1", 10.0, 20.0, FeatureDataStore.COLOR_STATE_GREEN).toJSONObject())
+                .toString()
         whenever(mockPrefs.getString(any(), eq(null))).thenReturn(initialJson)
         featureDataStore = FeatureDataStore(mockContext, onDataChanged)
 
@@ -123,7 +132,7 @@ class FeatureDataStoreTest {
         verify(onDataChanged, times(2)).invoke(any())
     }
 
-     @Test
+    @Test
     fun `cycleFeatureColorState with invalid id returns false`() {
         // Arrange
         // This stub is only used for object construction, so we mark it as lenient.

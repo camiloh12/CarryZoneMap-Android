@@ -13,12 +13,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.carryzonemap.app.domain.mapper.PinMapper.toFeatures
 import com.carryzonemap.app.map.FeatureDataStore
 import com.carryzonemap.app.map.FeatureLayerManager
+import com.carryzonemap.app.ui.components.PinDialog
 import com.carryzonemap.app.ui.viewmodel.MapViewModel
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
@@ -30,9 +30,7 @@ import org.maplibre.android.maps.Style
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen(
-    viewModel: MapViewModel = hiltViewModel()
-) {
+fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsState()
 
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
@@ -41,13 +39,14 @@ fun MapScreen(
     val featureLayerManager = remember { FeatureLayerManager() }
 
     // Location permission launcher
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            viewModel.onLocationPermissionResult(isGranted)
-            isMapReady = true
-        }
-    )
+    val locationPermissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission(),
+            onResult = { isGranted ->
+                viewModel.onLocationPermissionResult(isGranted)
+                isMapReady = true
+            },
+        )
 
     // Request location permission on first composition
     LaunchedEffect(Unit) {
@@ -76,8 +75,8 @@ fun MapScreen(
                 mapLibreMap?.animateCamera(
                     CameraUpdateFactory.newLatLngZoom(
                         LatLng(location.latitude, location.longitude),
-                        13.0
-                    )
+                        13.0,
+                    ),
                 )
                 hasZoomedToUserLocation = true
             }
@@ -93,11 +92,11 @@ fun MapScreen(
                             mapLibreMap?.animateCamera(
                                 CameraUpdateFactory.newLatLngZoom(
                                     LatLng(location.latitude, location.longitude),
-                                    13.0
-                                )
+                                    13.0,
+                                ),
                             )
                         }
-                    }
+                    },
                 ) {
                     Icon(Icons.Filled.MyLocation, contentDescription = "Re-center to my location")
                 }
@@ -110,17 +109,18 @@ fun MapScreen(
                         TextButton(onClick = { viewModel.clearError() }) {
                             Text("Dismiss")
                         }
-                    }
+                    },
                 ) {
                     Text(error)
                 }
             }
-        }
+        },
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
         ) {
             if (isMapReady) {
                 AndroidView(
@@ -131,7 +131,8 @@ fun MapScreen(
                                 mapLibreMap = map
 
                                 // Load map style
-                                val styleUrl = "https://api.maptiler.com/maps/streets-v2/style.json?key=${com.carryzonemap.app.BuildConfig.MAPTILER_API_KEY}"
+                                val apiKey = com.carryzonemap.app.BuildConfig.MAPTILER_API_KEY
+                                val styleUrl = "https://api.maptiler.com/maps/streets-v2/style.json?key=$apiKey"
                                 map.setStyle(styleUrl) { style ->
                                     currentStyle = style
 
@@ -145,27 +146,30 @@ fun MapScreen(
                                     }
 
                                     // Set default camera position (will be overridden by LaunchedEffect if location available)
-                                    map.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                                        LatLng(39.5, -98.35), // Default to center of US
-                                        3.5
-                                    ))
+                                    map.moveCamera(
+                                        CameraUpdateFactory.newLatLngZoom(
+                                            LatLng(39.5, -98.35), // Default to center of US
+                                            3.5,
+                                        ),
+                                    )
 
                                     // Set up map interaction listeners
                                     map.addOnMapLongClickListener { latLng ->
-                                        viewModel.addPin(latLng.longitude, latLng.latitude)
+                                        viewModel.showCreatePinDialog(latLng.longitude, latLng.latitude)
                                         true
                                     }
 
                                     map.addOnMapClickListener { point ->
                                         val screenPoint = map.projection.toScreenLocation(point)
-                                        val clickedFeatures = map.queryRenderedFeatures(
-                                            screenPoint,
-                                            FeatureLayerManager.USER_PINS_LAYER_ID
-                                        )
+                                        val clickedFeatures =
+                                            map.queryRenderedFeatures(
+                                                screenPoint,
+                                                FeatureLayerManager.USER_PINS_LAYER_ID,
+                                            )
                                         clickedFeatures.firstOrNull()?.let { feature ->
                                             feature.getStringProperty(FeatureDataStore.PROPERTY_FEATURE_ID)
                                                 ?.let { pinId ->
-                                                    viewModel.cyclePinStatus(pinId)
+                                                    viewModel.showEditPinDialog(pinId)
                                                 }
                                         }
                                         true
@@ -175,16 +179,33 @@ fun MapScreen(
                         }
                     },
                     modifier = Modifier.fillMaxSize(),
-                    update = { /* Map updates handled via LaunchedEffect */ }
+                    update = { /* Map updates handled via LaunchedEffect */ },
                 )
             } else {
                 Box(
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator()
                 }
             }
+
+            // Pin creation/editing dialog
+            PinDialog(
+                dialogState = uiState.pinDialogState,
+                onStatusSelected = { status ->
+                    viewModel.onDialogStatusSelected(status)
+                },
+                onConfirm = {
+                    viewModel.confirmPinDialog()
+                },
+                onDelete = {
+                    viewModel.deletePinFromDialog()
+                },
+                onDismiss = {
+                    viewModel.dismissPinDialog()
+                },
+            )
         }
     }
 }
@@ -194,12 +215,17 @@ fun MapScreen(
  * Also enables automatic tracking of the user's location as they move.
  */
 @Suppress("MissingPermission")
-private fun enableLocationComponent(context: Context, map: MapLibreMap, style: Style) {
+private fun enableLocationComponent(
+    context: Context,
+    map: MapLibreMap,
+    style: Style,
+) {
     val locationComponent = map.locationComponent
-    val activationOptions = LocationComponentActivationOptions
-        .builder(context, style)
-        .useDefaultLocationEngine(true)
-        .build()
+    val activationOptions =
+        LocationComponentActivationOptions
+            .builder(context, style)
+            .useDefaultLocationEngine(true)
+            .build()
 
     locationComponent.activateLocationComponent(activationOptions)
     locationComponent.isLocationComponentEnabled = true

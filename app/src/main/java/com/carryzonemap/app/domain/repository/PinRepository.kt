@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.Flow
  * Provides an abstraction layer between the domain layer and data sources.
  */
 interface PinRepository {
-
     /**
      * Get all pins as a reactive Flow.
      * Emits a new list whenever pins are added, updated, or deleted.

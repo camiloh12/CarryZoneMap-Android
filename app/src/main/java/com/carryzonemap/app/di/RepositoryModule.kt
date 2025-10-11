@@ -14,13 +14,10 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
-
     /**
      * Binds the PinRepositoryImpl to the PinRepository interface.
      */
     @Binds
     @Singleton
-    abstract fun bindPinRepository(
-        pinRepositoryImpl: PinRepositoryImpl
-    ): PinRepository
+    abstract fun bindPinRepository(pinRepositoryImpl: PinRepositoryImpl): PinRepository
 }

@@ -11,11 +11,13 @@ import com.carryzonemap.app.domain.model.Pin
  * @property isLoading Whether data is currently loading
  * @property error Error message if something went wrong
  * @property hasLocationPermission Whether location permission is granted
+ * @property pinDialogState State of the pin creation/editing dialog
  */
 data class MapUiState(
     val pins: List<Pin> = emptyList(),
     val currentLocation: Location? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val hasLocationPermission: Boolean = false
+    val hasLocationPermission: Boolean = false,
+    val pinDialogState: PinDialogState = PinDialogState.Hidden,
 )

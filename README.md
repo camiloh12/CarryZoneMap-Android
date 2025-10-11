@@ -48,8 +48,9 @@ This app follows **Clean Architecture** principles with **MVVM** pattern:
 
 - 📍 **Interactive Map**: Pan, zoom, and explore with MapLibre
 - 📌 **Pin Management**:
-  - Long-press to add pins
-  - Click to cycle status (Allowed → Uncertain → No Guns → Allowed)
+  - Long-press to open dialog and create pins with chosen status
+  - Tap existing pins to edit status or delete
+  - Interactive dialog with visual status picker (green/yellow/red)
   - Pins persist in local Room database
 - 🎨 **Color-Coded Status**:
   - 🟢 Green: Firearms allowed
@@ -70,7 +71,8 @@ This app follows **Clean Architecture** principles with **MVVM** pattern:
 - ✅ Hilt dependency injection
 - ✅ Room database with type-safe DAOs
 - ✅ Proper error handling and loading states
-- ✅ Testable architecture (unit test ready)
+- ✅ Comprehensive testing (81 unit tests, 100% pass rate)
+- ✅ Code quality tools (Detekt + KtLint)
 
 ## 🚀 Getting Started
 
@@ -120,9 +122,10 @@ This app follows **Clean Architecture** principles with **MVVM** pattern:
 
 1. Grant location permission when prompted
 2. Map will center on your current location
-3. Long-press anywhere to add a pin
-4. Click a pin to cycle through statuses (green → yellow → red → green)
-5. Use the 📍 FAB button to re-center on your location
+3. Long-press anywhere to open the pin creation dialog
+4. Select a status (Allowed/Uncertain/No Guns) and tap "Create"
+5. Tap any existing pin to edit its status or delete it
+6. Use the 📍 FAB button to re-center on your location
 
 ## 📂 Project Structure
 
@@ -155,8 +158,11 @@ app/src/main/java/com/carryzonemap/app/
 │
 ├── ui/                              # Presentation Layer
 │   ├── MapScreen.kt                 # Main Compose UI
+│   ├── components/
+│   │   └── PinDialog.kt             # Pin creation/editing dialog
 │   ├── state/
-│   │   └── MapUiState.kt            # Immutable UI state
+│   │   ├── MapUiState.kt            # Immutable UI state
+│   │   └── PinDialogState.kt        # Dialog state management
 │   └── viewmodel/
 │       └── MapViewModel.kt          # State management
 │
@@ -201,17 +207,81 @@ Example test structure:
 // ViewModelTest with fake repository
 class MapViewModelTest {
     @Test
-    fun `adding pin updates state correctly`() = runTest {
+    fun `creating pin via dialog updates state correctly`() = runTest {
         val fakeRepo = FakePinRepository()
         val viewModel = MapViewModel(fakeRepo, fakeLocationClient, context)
 
-        viewModel.addPin(-122.0, 37.0)
+        viewModel.showCreatePinDialog(-122.0, 37.0)
+        viewModel.onDialogStatusSelected(PinStatus.ALLOWED)
+        viewModel.confirmPinDialog()
 
         val state = viewModel.uiState.first()
         assertEquals(1, state.pins.size)
     }
 }
 ```
+
+### Current Test Coverage
+
+✅ **81 unit tests** with **100% pass rate**:
+- 27 tests for domain models (Location, Pin, PinStatus)
+- 25 tests for mappers (EntityMapper, PinMapper)
+- 12 tests for PinRepository
+- 10 tests for MapViewModel
+- 7 tests for legacy components
+
+All tests use best practices:
+- Robolectric for Android framework testing
+- Turbine for Flow testing
+- Fake repositories for ViewModel testing
+- Mockito for mocking dependencies
+
+## 🔍 Code Quality
+
+This project uses **static analysis** and **formatting tools** to maintain code quality:
+
+### Detekt (Static Analysis)
+
+```bash
+# Run Detekt analysis
+./gradlew detekt
+```
+
+**Configuration** (`detekt.yml`):
+- Complexity thresholds adjusted for Compose functions
+- Android-specific rules enabled
+- Magic number exceptions for coordinates and constants
+- **Current status**: ✅ 0 violations
+
+### KtLint (Code Formatting)
+
+```bash
+# Check code formatting
+./gradlew ktlintCheck
+
+# Auto-format code
+./gradlew ktlintFormat
+```
+
+**Configuration**:
+- Android conventions enabled
+- Compose-specific function naming allowed (capital letter functions)
+- Wildcard imports allowed for Compose packages
+- **Current status**: ✅ Passing (Compose-specific warnings suppressed)
+
+### Running All Quality Checks
+
+```bash
+# Run tests + Detekt + KtLint in one command
+./gradlew check
+```
+
+This will:
+1. Compile the code
+2. Run all unit tests
+3. Run Detekt static analysis
+4. Run KtLint formatting checks
+5. Generate reports in `app/build/reports/`
 
 ## 🔧 Configuration
 
@@ -350,9 +420,9 @@ offline-first sync logic."
 
 ### Phase 6: Polish & Production
 
-- [ ] **Code Quality**
-  - [ ] Add Detekt for static analysis
-  - [ ] Add KtLint for code formatting
+- [x] **Code Quality** ✅
+  - [x] Add Detekt for static analysis
+  - [x] Add KtLint for code formatting
   - [ ] Configure ProGuard for release builds
   - [ ] Set up CI/CD pipeline
 

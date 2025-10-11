@@ -17,16 +17,15 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
-
     @Provides
     @Singleton
     fun provideCarryZoneDatabase(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
     ): CarryZoneDatabase {
         return Room.databaseBuilder(
             context,
             CarryZoneDatabase::class.java,
-            CarryZoneDatabase.DATABASE_NAME
+            CarryZoneDatabase.DATABASE_NAME,
         )
             .fallbackToDestructiveMigration() // For development - remove in production
             .build()

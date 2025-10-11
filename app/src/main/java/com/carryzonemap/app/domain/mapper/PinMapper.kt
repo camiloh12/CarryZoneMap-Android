@@ -11,7 +11,6 @@ import org.maplibre.geojson.Point
  * Mapper object for converting between domain models and MapLibre Feature objects.
  */
 object PinMapper {
-
     private const val PROPERTY_FEATURE_ID = "feature_id"
     private const val PROPERTY_COLOR_STATE = "color_state"
     private const val PROPERTY_PHOTO_URI = "photo_uri"
@@ -48,25 +47,28 @@ object PinMapper {
         val id = getStringProperty(PROPERTY_FEATURE_ID) ?: return null
         val colorCode = getNumberProperty(PROPERTY_COLOR_STATE)?.toInt() ?: 0
 
-        val location = Location(
-            latitude = point.latitude(),
-            longitude = point.longitude()
-        )
+        val location =
+            Location(
+                latitude = point.latitude(),
+                longitude = point.longitude(),
+            )
 
         val status = PinStatus.fromColorCode(colorCode)
 
-        val metadata = PinMetadata(
-            photoUri = getStringProperty(PROPERTY_PHOTO_URI),
-            notes = getStringProperty(PROPERTY_NOTES),
-            createdAt = getNumberProperty(PROPERTY_CREATED_AT)?.toLong()
-                ?: System.currentTimeMillis()
-        )
+        val metadata =
+            PinMetadata(
+                photoUri = getStringProperty(PROPERTY_PHOTO_URI),
+                notes = getStringProperty(PROPERTY_NOTES),
+                createdAt =
+                    getNumberProperty(PROPERTY_CREATED_AT)?.toLong()
+                        ?: System.currentTimeMillis(),
+            )
 
         return Pin(
             id = id,
             location = location,
             status = status,
-            metadata = metadata
+            metadata = metadata,
         )
     }
 

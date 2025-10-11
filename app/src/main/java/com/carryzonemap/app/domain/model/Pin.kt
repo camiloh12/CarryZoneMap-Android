@@ -14,30 +14,33 @@ data class Pin(
     val id: String = UUID.randomUUID().toString(),
     val location: Location,
     val status: PinStatus = PinStatus.ALLOWED,
-    val metadata: PinMetadata = PinMetadata()
+    val metadata: PinMetadata = PinMetadata(),
 ) {
     /**
      * Creates a new Pin with updated status (cycles through statuses)
      */
-    fun withNextStatus(): Pin = copy(
-        status = status.next(),
-        metadata = metadata.copy(lastModified = System.currentTimeMillis())
-    )
+    fun withNextStatus(): Pin =
+        copy(
+            status = status.next(),
+            metadata = metadata.copy(lastModified = System.currentTimeMillis()),
+        )
 
     /**
      * Creates a new Pin with updated status
      */
-    fun withStatus(newStatus: PinStatus): Pin = copy(
-        status = newStatus,
-        metadata = metadata.copy(lastModified = System.currentTimeMillis())
-    )
+    fun withStatus(newStatus: PinStatus): Pin =
+        copy(
+            status = newStatus,
+            metadata = metadata.copy(lastModified = System.currentTimeMillis()),
+        )
 
     /**
      * Creates a new Pin with updated metadata
      */
-    fun withMetadata(newMetadata: PinMetadata): Pin = copy(
-        metadata = newMetadata.copy(lastModified = System.currentTimeMillis())
-    )
+    fun withMetadata(newMetadata: PinMetadata): Pin =
+        copy(
+            metadata = newMetadata.copy(lastModified = System.currentTimeMillis()),
+        )
 
     companion object {
         /**
@@ -46,11 +49,11 @@ data class Pin(
         fun fromLngLat(
             longitude: Double,
             latitude: Double,
-            status: PinStatus = PinStatus.ALLOWED
+            status: PinStatus = PinStatus.ALLOWED,
         ): Pin {
             return Pin(
                 location = Location.fromLngLat(longitude, latitude),
-                status = status
+                status = status,
             )
         }
     }

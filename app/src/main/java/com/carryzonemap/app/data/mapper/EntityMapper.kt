@@ -10,7 +10,6 @@ import com.carryzonemap.app.domain.model.PinStatus
  * Mapper for converting between domain models and database entities.
  */
 object EntityMapper {
-
     /**
      * Converts a domain Pin to a database PinEntity.
      */
@@ -25,7 +24,7 @@ object EntityMapper {
             votes = metadata.votes,
             createdBy = metadata.createdBy,
             createdAt = metadata.createdAt,
-            lastModified = metadata.lastModified
+            lastModified = metadata.lastModified,
         )
     }
 
@@ -35,19 +34,21 @@ object EntityMapper {
     fun PinEntity.toDomain(): Pin {
         return Pin(
             id = id,
-            location = Location(
-                latitude = latitude,
-                longitude = longitude
-            ),
+            location =
+                Location(
+                    latitude = latitude,
+                    longitude = longitude,
+                ),
             status = PinStatus.fromColorCode(status),
-            metadata = PinMetadata(
-                photoUri = photoUri,
-                notes = notes,
-                votes = votes,
-                createdBy = createdBy,
-                createdAt = createdAt,
-                lastModified = lastModified
-            )
+            metadata =
+                PinMetadata(
+                    photoUri = photoUri,
+                    notes = notes,
+                    votes = votes,
+                    createdBy = createdBy,
+                    createdAt = createdAt,
+                    lastModified = lastModified,
+                ),
         )
     }
 
