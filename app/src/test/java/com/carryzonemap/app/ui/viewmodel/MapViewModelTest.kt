@@ -1,11 +1,8 @@
 package com.carryzonemap.app.ui.viewmodel
 
-import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.test.core.app.ApplicationProvider
-import app.cash.turbine.test
 import com.carryzonemap.app.domain.model.Location
 import com.carryzonemap.app.domain.model.Pin
 import com.carryzonemap.app.domain.model.PinStatus
@@ -40,7 +37,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class MapViewModelTest {
-
     @get:Rule
     val instantTaskExecutorRule = InstantTaskExecutorRule()
 
@@ -51,11 +47,12 @@ class MapViewModelTest {
     private lateinit var context: Context
     private lateinit var viewModel: MapViewModel
 
-    private val testPin = Pin(
-        id = "test-123",
-        location = Location(latitude = 40.7128, longitude = -74.0060),
-        status = PinStatus.ALLOWED
-    )
+    private val testPin =
+        Pin(
+            id = "test-123",
+            location = Location(latitude = 40.7128, longitude = -74.0060),
+            status = PinStatus.ALLOWED,
+        )
 
     @Before
     fun setup() {
@@ -71,145 +68,155 @@ class MapViewModelTest {
     }
 
     @Test
-    fun `initial state is correct`() = runTest {
-        viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
-        testDispatcher.scheduler.advanceUntilIdle()
+    fun `initial state is correct`() =
+        runTest {
+            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        val state = viewModel.uiState.value
-        assertEquals(0, state.pins.size)
-        assertNull(state.currentLocation)
-        assertFalse(state.isLoading)
-        assertNull(state.error)
-    }
-
-    @Test
-    fun `observes pins from repository on initialization`() = runTest {
-        fakeRepository.emitPins(listOf(testPin))
-
-        viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        val state = viewModel.uiState.value
-        assertEquals(1, state.pins.size)
-        assertEquals(testPin.id, state.pins[0].id)
-    }
+            val state = viewModel.uiState.value
+            assertEquals(0, state.pins.size)
+            assertNull(state.currentLocation)
+            assertFalse(state.isLoading)
+            assertNull(state.error)
+        }
 
     @Test
-    fun `addPin adds pin to repository`() = runTest {
-        viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
-        testDispatcher.scheduler.advanceUntilIdle()
+    fun `observes pins from repository on initialization`() =
+        runTest {
+            fakeRepository.emitPins(listOf(testPin))
 
-        viewModel.addPin(-74.0060, 40.7128)
-        testDispatcher.scheduler.advanceUntilIdle()
+            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(1, fakeRepository.pins.size)
-        val addedPin = fakeRepository.pins.values.first()
-        assertEquals(40.7128, addedPin.location.latitude, 0.0001)
-        assertEquals(-74.0060, addedPin.location.longitude, 0.0001)
-    }
-
-    @Test
-    fun `cyclePinStatus updates pin status`() = runTest {
-        fakeRepository.emitPins(listOf(testPin))
-
-        viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.cyclePinStatus(testPin.id)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        val updatedPin = fakeRepository.pins[testPin.id]
-        assertEquals(PinStatus.UNCERTAIN, updatedPin?.status)
-    }
+            val state = viewModel.uiState.value
+            assertEquals(1, state.pins.size)
+            assertEquals(testPin.id, state.pins[0].id)
+        }
 
     @Test
-    fun `cyclePinStatus sets error when pin not found`() = runTest {
-        viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
-        testDispatcher.scheduler.advanceUntilIdle()
+    fun `addPin adds pin to repository`() =
+        runTest {
+            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.cyclePinStatus("nonexistent")
-        testDispatcher.scheduler.advanceUntilIdle()
+            viewModel.addPin(-74.0060, 40.7128)
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNotNull(viewModel.uiState.value.error)
-        assertTrue(viewModel.uiState.value.error!!.contains("Pin not found"))
-    }
-
-    @Test
-    fun `deletePin removes pin from repository`() = runTest {
-        fakeRepository.emitPins(listOf(testPin))
-
-        viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.deletePin(testPin)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertEquals(0, fakeRepository.pins.size)
-    }
+            assertEquals(1, fakeRepository.pins.size)
+            val addedPin = fakeRepository.pins.values.first()
+            assertEquals(40.7128, addedPin.location.latitude, 0.0001)
+            assertEquals(-74.0060, addedPin.location.longitude, 0.0001)
+        }
 
     @Test
-    fun `clearError clears error state`() = runTest {
-        viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
-        testDispatcher.scheduler.advanceUntilIdle()
+    fun `cyclePinStatus updates pin status`() =
+        runTest {
+            fakeRepository.emitPins(listOf(testPin))
 
-        // Trigger an error
-        viewModel.cyclePinStatus("nonexistent")
-        testDispatcher.scheduler.advanceUntilIdle()
-        assertNotNull(viewModel.uiState.value.error)
+            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        // Clear the error
-        viewModel.clearError()
-        testDispatcher.scheduler.advanceUntilIdle()
+            viewModel.cyclePinStatus(testPin.id)
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.error)
-    }
+            val updatedPin = fakeRepository.pins[testPin.id]
+            assertEquals(PinStatus.UNCERTAIN, updatedPin?.status)
+        }
 
     @Test
-    fun `getCurrentLocationForCamera returns current location`() = runTest {
-        val mockLocation = mock(android.location.Location::class.java)
-        `when`(mockLocation.latitude).thenReturn(40.7128)
-        `when`(mockLocation.longitude).thenReturn(-74.0060)
-        `when`(mockLocationClient.lastLocation).thenReturn(Tasks.forResult(mockLocation))
+    fun `cyclePinStatus sets error when pin not found`() =
+        runTest {
+            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
-        testDispatcher.scheduler.advanceUntilIdle()
+            viewModel.cyclePinStatus("nonexistent")
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        // Grant location permission for this test
-        viewModel.onLocationPermissionResult(true)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.fetchCurrentLocation()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        val location = viewModel.getCurrentLocationForCamera()
-        assertNotNull(location)
-        assertEquals(40.7128, location!!.latitude, 0.0001)
-        assertEquals(-74.0060, location.longitude, 0.0001)
-    }
+            assertNotNull(viewModel.uiState.value.error)
+            assertTrue(viewModel.uiState.value.error!!.contains("Pin not found"))
+        }
 
     @Test
-    fun `onLocationPermissionResult updates permission state`() = runTest {
-        viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
-        testDispatcher.scheduler.advanceUntilIdle()
+    fun `deletePin removes pin from repository`() =
+        runTest {
+            fakeRepository.emitPins(listOf(testPin))
 
-        assertFalse(viewModel.uiState.value.hasLocationPermission)
+            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.onLocationPermissionResult(true)
-        testDispatcher.scheduler.advanceUntilIdle()
+            viewModel.deletePin(testPin)
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        assertTrue(viewModel.uiState.value.hasLocationPermission)
-    }
+            assertEquals(0, fakeRepository.pins.size)
+        }
 
     @Test
-    fun `repository error is handled and shown in UI state`() = runTest {
-        fakeRepository.shouldThrowError = true
+    fun `clearError clears error state`() =
+        runTest {
+            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
-        testDispatcher.scheduler.advanceUntilIdle()
+            // Trigger an error
+            viewModel.cyclePinStatus("nonexistent")
+            testDispatcher.scheduler.advanceUntilIdle()
+            assertNotNull(viewModel.uiState.value.error)
 
-        assertNotNull(viewModel.uiState.value.error)
-        assertTrue(viewModel.uiState.value.error!!.contains("Failed to load pins"))
-    }
+            // Clear the error
+            viewModel.clearError()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertNull(viewModel.uiState.value.error)
+        }
+
+    @Test
+    fun `getCurrentLocationForCamera returns current location`() =
+        runTest {
+            val mockLocation = mock(android.location.Location::class.java)
+            `when`(mockLocation.latitude).thenReturn(40.7128)
+            `when`(mockLocation.longitude).thenReturn(-74.0060)
+            `when`(mockLocationClient.lastLocation).thenReturn(Tasks.forResult(mockLocation))
+
+            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            // Grant location permission for this test
+            viewModel.onLocationPermissionResult(true)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.fetchCurrentLocation()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val location = viewModel.getCurrentLocationForCamera()
+            assertNotNull(location)
+            assertEquals(40.7128, location!!.latitude, 0.0001)
+            assertEquals(-74.0060, location.longitude, 0.0001)
+        }
+
+    @Test
+    fun `onLocationPermissionResult updates permission state`() =
+        runTest {
+            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.value.hasLocationPermission)
+
+            viewModel.onLocationPermissionResult(true)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(viewModel.uiState.value.hasLocationPermission)
+        }
+
+    @Test
+    fun `repository error is handled and shown in UI state`() =
+        runTest {
+            fakeRepository.shouldThrowError = true
+
+            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertNotNull(viewModel.uiState.value.error)
+            assertTrue(viewModel.uiState.value.error!!.contains("Failed to load pins"))
+        }
 
     /**
      * Fake repository implementation for testing.

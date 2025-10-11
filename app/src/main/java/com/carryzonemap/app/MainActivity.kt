@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
         MapLibre.getInstance(
             applicationContext,
             "dummy-api-key", // not used for MapLibre, but required by method
-            WellKnownTileServer.MapLibre
+            WellKnownTileServer.MapLibre,
         )
 
         setContent {

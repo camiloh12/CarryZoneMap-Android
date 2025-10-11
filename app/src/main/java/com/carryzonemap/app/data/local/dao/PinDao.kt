@@ -1,6 +1,11 @@
 package com.carryzonemap.app.data.local.dao
 
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Update
 import com.carryzonemap.app.data.local.entity.PinEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -9,7 +14,6 @@ import kotlinx.coroutines.flow.Flow
  */
 @Dao
 interface PinDao {
-
     /**
      * Get all pins as a reactive Flow.
      * The Flow will emit a new list whenever the database changes.

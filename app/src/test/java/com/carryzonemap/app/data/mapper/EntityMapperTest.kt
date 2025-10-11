@@ -14,33 +14,36 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class EntityMapperTest {
+    private val testPin =
+        Pin(
+            id = "test-123",
+            location = Location(latitude = 40.7128, longitude = -74.0060),
+            status = PinStatus.UNCERTAIN,
+            metadata =
+                PinMetadata(
+                    photoUri = "file:///photo.jpg",
+                    notes = "Test location",
+                    votes = 5,
+                    createdBy = "user-456",
+                    createdAt = 1000L,
+                    lastModified = 2000L,
+                ),
+        )
 
-    private val testPin = Pin(
-        id = "test-123",
-        location = Location(latitude = 40.7128, longitude = -74.0060),
-        status = PinStatus.UNCERTAIN,
-        metadata = PinMetadata(
+    private val testEntity =
+        PinEntity(
+            id = "test-123",
+            longitude = -74.0060,
+            latitude = 40.7128,
+            // UNCERTAIN
+            status = 1,
             photoUri = "file:///photo.jpg",
             notes = "Test location",
             votes = 5,
             createdBy = "user-456",
             createdAt = 1000L,
-            lastModified = 2000L
+            lastModified = 2000L,
         )
-    )
-
-    private val testEntity = PinEntity(
-        id = "test-123",
-        longitude = -74.0060,
-        latitude = 40.7128,
-        status = 1, // UNCERTAIN
-        photoUri = "file:///photo.jpg",
-        notes = "Test location",
-        votes = 5,
-        createdBy = "user-456",
-        createdAt = 1000L,
-        lastModified = 2000L
-    )
 
     @Test
     fun `converts Pin to PinEntity correctly`() {
@@ -100,12 +103,13 @@ class EntityMapperTest {
 
     @Test
     fun `converts Pin with null metadata fields correctly`() {
-        val pinWithNulls = Pin(
-            id = "null-test",
-            location = Location(0.0, 0.0),
-            status = PinStatus.ALLOWED,
-            metadata = PinMetadata()
-        )
+        val pinWithNulls =
+            Pin(
+                id = "null-test",
+                location = Location(0.0, 0.0),
+                status = PinStatus.ALLOWED,
+                metadata = PinMetadata(),
+            )
 
         val entity = pinWithNulls.toEntity()
 
@@ -117,12 +121,13 @@ class EntityMapperTest {
 
     @Test
     fun `converts Entity with null fields to Pin correctly`() {
-        val entityWithNulls = PinEntity(
-            id = "null-test",
-            longitude = 0.0,
-            latitude = 0.0,
-            status = 0
-        )
+        val entityWithNulls =
+            PinEntity(
+                id = "null-test",
+                longitude = 0.0,
+                latitude = 0.0,
+                status = 0,
+            )
 
         val pin = entityWithNulls.toDomain()
 

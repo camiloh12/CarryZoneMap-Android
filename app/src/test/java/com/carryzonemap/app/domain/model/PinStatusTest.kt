@@ -4,7 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class PinStatusTest {
-
     @Test
     fun `next cycles from ALLOWED to UNCERTAIN`() {
         val status = PinStatus.ALLOWED

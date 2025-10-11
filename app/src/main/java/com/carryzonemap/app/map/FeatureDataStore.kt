@@ -2,14 +2,12 @@ package com.carryzonemap.app.map
 
 import android.content.Context
 import android.util.Log
+import org.json.JSONArray
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.Point
-import org.json.JSONArray
-import org.json.JSONObject
 import java.util.UUID
 
 class FeatureDataStore(context: Context, private val onDataChanged: (List<Feature>) -> Unit) {
-
     private val featuresList = mutableListOf<Feature>()
     private val prefs = context.getSharedPreferences("MapFeatureData", Context.MODE_PRIVATE)
 
@@ -30,7 +28,10 @@ class FeatureDataStore(context: Context, private val onDataChanged: (List<Featur
         onDataChanged(getFeaturesSnapshot()) // Notify listeners of initial state
     }
 
-    fun addFeature(longitude: Double, latitude: Double): Feature {
+    fun addFeature(
+        longitude: Double,
+        latitude: Double,
+    ): Feature {
         val newFeatureId = UUID.randomUUID().toString()
         val newFeature = Feature.fromGeometry(Point.fromLngLat(longitude, latitude))
         newFeature.addStringProperty(PROPERTY_FEATURE_ID, newFeatureId)
@@ -49,11 +50,12 @@ class FeatureDataStore(context: Context, private val onDataChanged: (List<Featur
         val feature = findFeatureById(featureId) ?: return false
 
         val currentState = feature.getNumberProperty(PROPERTY_COLOR_STATE)?.toInt() ?: COLOR_STATE_GREEN
-        val nextState = when (currentState) {
-            COLOR_STATE_GREEN -> COLOR_STATE_YELLOW
-            COLOR_STATE_YELLOW -> COLOR_STATE_RED
-            else -> COLOR_STATE_GREEN
-        }
+        val nextState =
+            when (currentState) {
+                COLOR_STATE_GREEN -> COLOR_STATE_YELLOW
+                COLOR_STATE_YELLOW -> COLOR_STATE_RED
+                else -> COLOR_STATE_GREEN
+            }
         feature.removeProperty(PROPERTY_COLOR_STATE) // Ensure clean update
         feature.addNumberProperty(PROPERTY_COLOR_STATE, nextState)
         saveFeatures()

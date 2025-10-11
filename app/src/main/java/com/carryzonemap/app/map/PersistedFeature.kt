@@ -22,7 +22,7 @@ internal data class PersistedFeature(val id: String, val lon: Double, val lat: D
                 id = json.getString("id"),
                 lon = json.getDouble("lon"),
                 lat = json.getDouble("lat"),
-                state = json.getInt("state")
+                state = json.getInt("state"),
             )
         }
     }

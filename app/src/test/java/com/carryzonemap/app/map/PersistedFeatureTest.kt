@@ -5,16 +5,16 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class PersistedFeatureTest {
-
     @Test
     fun `toJSONObject should serialize correctly`() {
         // Arrange
-        val feature = PersistedFeature(
-            id = "test-id",
-            lon = -122.4194,
-            lat = 37.7749,
-            state = 1
-        )
+        val feature =
+            PersistedFeature(
+                id = "test-id",
+                lon = -122.4194,
+                lat = 37.7749,
+                state = 1,
+            )
 
         // Act
         val json = feature.toJSONObject()
@@ -29,12 +29,13 @@ class PersistedFeatureTest {
     @Test
     fun `fromJSONObject should deserialize correctly`() {
         // Arrange
-        val json = JSONObject().apply {
-            put("id", "test-id-2")
-            put("lon", -74.0060)
-            put("lat", 40.7128)
-            put("state", 2)
-        }
+        val json =
+            JSONObject().apply {
+                put("id", "test-id-2")
+                put("lon", -74.0060)
+                put("lat", 40.7128)
+                put("state", 2)
+            }
 
         // Act
         val feature = PersistedFeature.fromJSONObject(json)

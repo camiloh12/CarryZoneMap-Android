@@ -6,14 +6,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PinTest {
-
     private val testLocation = Location(latitude = 40.7128, longitude = -74.0060)
-    private val testPin = Pin(
-        id = "test-id",
-        location = testLocation,
-        status = PinStatus.ALLOWED,
-        metadata = PinMetadata(createdAt = 1000L, lastModified = 1000L)
-    )
+    private val testPin =
+        Pin(
+            id = "test-id",
+            location = testLocation,
+            status = PinStatus.ALLOWED,
+            metadata = PinMetadata(createdAt = 1000L, lastModified = 1000L),
+        )
 
     @Test
     fun `creates pin with fromLngLat factory method`() {
@@ -26,11 +26,12 @@ class PinTest {
 
     @Test
     fun `fromLngLat creates pin with custom status`() {
-        val pin = Pin.fromLngLat(
-            longitude = -74.0060,
-            latitude = 40.7128,
-            status = PinStatus.NO_GUN
-        )
+        val pin =
+            Pin.fromLngLat(
+                longitude = -74.0060,
+                latitude = 40.7128,
+                status = PinStatus.NO_GUN,
+            )
 
         assertEquals(PinStatus.NO_GUN, pin.status)
     }
@@ -62,10 +63,11 @@ class PinTest {
 
     @Test
     fun `withMetadata updates metadata and lastModified`() {
-        val newMetadata = PinMetadata(
-            notes = "Test note",
-            photoUri = "test://photo"
-        )
+        val newMetadata =
+            PinMetadata(
+                notes = "Test note",
+                photoUri = "test://photo",
+            )
         val updatedPin = testPin.withMetadata(newMetadata)
 
         assertEquals("Test note", updatedPin.metadata.notes)
@@ -95,9 +97,12 @@ class PinTest {
     fun `pin has default metadata when not provided`() {
         val pin = Pin(location = testLocation)
 
-        assertEquals(PinMetadata(), pin.metadata.copy(
-            createdAt = PinMetadata().createdAt,
-            lastModified = PinMetadata().lastModified
-        ))
+        assertEquals(
+            PinMetadata(),
+            pin.metadata.copy(
+                createdAt = PinMetadata().createdAt,
+                lastModified = PinMetadata().lastModified,
+            ),
+        )
     }
 }

@@ -19,5 +19,5 @@ data class MapUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val hasLocationPermission: Boolean = false,
-    val pinDialogState: PinDialogState = PinDialogState.Hidden
+    val pinDialogState: PinDialogState = PinDialogState.Hidden,
 )

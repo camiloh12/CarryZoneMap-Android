@@ -1,14 +1,13 @@
 package com.carryzonemap.app.map
 
-import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.geojson.Feature // For type hint of map.queryRenderedFeatures
 
 class MapInteractionHandler(
     private val map: MapLibreMap,
-    private val featureDataStore: FeatureDataStore
+    private val featureDataStore: FeatureDataStore,
 ) {
-
     fun setupListeners() {
         setupMapLongClickListener()
         setupMapClickListener()

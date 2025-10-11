@@ -16,17 +16,18 @@ import org.maplibre.geojson.Feature
 import org.maplibre.geojson.Point
 
 class PinMapperTest {
-
-    private val testPin = Pin(
-        id = "test-123",
-        location = Location(latitude = 40.7128, longitude = -74.0060),
-        status = PinStatus.UNCERTAIN,
-        metadata = PinMetadata(
-            photoUri = "file:///photo.jpg",
-            notes = "Test location",
-            createdAt = 1000L
+    private val testPin =
+        Pin(
+            id = "test-123",
+            location = Location(latitude = 40.7128, longitude = -74.0060),
+            status = PinStatus.UNCERTAIN,
+            metadata =
+                PinMetadata(
+                    photoUri = "file:///photo.jpg",
+                    notes = "Test location",
+                    createdAt = 1000L,
+                ),
         )
-    )
 
     @Test
     fun `converts Pin to Feature correctly`() {
@@ -71,12 +72,13 @@ class PinMapperTest {
 
     @Test
     fun `converts Pin with null metadata fields correctly`() {
-        val pinWithNulls = Pin(
-            id = "null-test",
-            location = Location(0.0, 0.0),
-            status = PinStatus.ALLOWED,
-            metadata = PinMetadata()
-        )
+        val pinWithNulls =
+            Pin(
+                id = "null-test",
+                location = Location(0.0, 0.0),
+                status = PinStatus.ALLOWED,
+                metadata = PinMetadata(),
+            )
 
         val feature = pinWithNulls.toFeature()
 

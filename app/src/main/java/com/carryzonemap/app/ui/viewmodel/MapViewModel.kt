@@ -36,275 +36,286 @@ import javax.inject.Inject
  * @property fusedLocationClient Client for accessing device location
  */
 @HiltViewModel
-class MapViewModel @Inject constructor(
-    private val pinRepository: PinRepository,
-    private val fusedLocationClient: FusedLocationProviderClient,
-    @ApplicationContext private val context: Context
-) : ViewModel() {
+class MapViewModel
+    @Inject
+    constructor(
+        private val pinRepository: PinRepository,
+        private val fusedLocationClient: FusedLocationProviderClient,
+        @ApplicationContext private val context: Context,
+    ) : ViewModel() {
+        private val _uiState = MutableStateFlow(MapUiState())
+        val uiState: StateFlow<MapUiState> = _uiState.asStateFlow()
 
-    private val _uiState = MutableStateFlow(MapUiState())
-    val uiState: StateFlow<MapUiState> = _uiState.asStateFlow()
+        private var locationCallback: LocationCallback? = null
 
-    private var locationCallback: LocationCallback? = null
-
-    init {
-        observePins()
-        checkLocationPermission()
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        stopLocationUpdates()
-    }
-
-    /**
-     * Observes pin changes from the repository and updates UI state.
-     */
-    private fun observePins() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
-            pinRepository.getAllPins()
-                .catch { error ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = "Failed to load pins: ${error.message}"
-                        )
-                    }
-                }
-                .collect { pins ->
-                    _uiState.update {
-                        it.copy(
-                            pins = pins,
-                            isLoading = false,
-                            error = null
-                        )
-                    }
-                }
-        }
-    }
-
-    /**
-     * Checks if location permission is granted.
-     */
-    private fun checkLocationPermission() {
-        val hasPermission = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-
-        _uiState.update { it.copy(hasLocationPermission = hasPermission) }
-
-        // Start location updates if permission is already granted
-        if (hasPermission) {
-            startLocationUpdates()
-        }
-    }
-
-    /**
-     * Called when location permission result is received.
-     */
-    fun onLocationPermissionResult(granted: Boolean) {
-        _uiState.update { it.copy(hasLocationPermission = granted) }
-        if (granted) {
-            startLocationUpdates()
-        }
-    }
-
-    /**
-     * Fetches the user's current location.
-     */
-    fun fetchCurrentLocation() {
-        if (!_uiState.value.hasLocationPermission) {
-            return
+        init {
+            observePins()
+            checkLocationPermission()
         }
 
-        viewModelScope.launch {
-            try {
-                @Suppress("MissingPermission")
-                val location = fusedLocationClient.lastLocation.await()
-                if (location != null) {
-                    _uiState.update {
-                        it.copy(
-                            currentLocation = Location(
-                                latitude = location.latitude,
-                                longitude = location.longitude
+        override fun onCleared() {
+            super.onCleared()
+            stopLocationUpdates()
+        }
+
+        /**
+         * Observes pin changes from the repository and updates UI state.
+         */
+        private fun observePins() {
+            viewModelScope.launch {
+                _uiState.update { it.copy(isLoading = true) }
+
+                pinRepository.getAllPins()
+                    .catch { error ->
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = "Failed to load pins: ${error.message}",
                             )
-                        )
+                        }
                     }
-                }
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(error = "Failed to get location: ${e.message}")
-                }
+                    .collect { pins ->
+                        _uiState.update {
+                            it.copy(
+                                pins = pins,
+                                isLoading = false,
+                                error = null,
+                            )
+                        }
+                    }
             }
         }
-    }
 
-    /**
-     * Shows the dialog to create a new pin at the specified location.
-     */
-    fun showCreatePinDialog(longitude: Double, latitude: Double) {
-        val location = Location.fromLngLat(longitude, latitude)
-        _uiState.update {
-            it.copy(pinDialogState = PinDialogState.Creating(location))
-        }
-    }
+        /**
+         * Checks if location permission is granted.
+         */
+        private fun checkLocationPermission() {
+            val hasPermission =
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                ) == PackageManager.PERMISSION_GRANTED
 
-    /**
-     * Shows the dialog to edit an existing pin.
-     */
-    fun showEditPinDialog(pinId: String) {
-        val pin = _uiState.value.pins.find { it.id == pinId }
-        if (pin != null) {
-            _uiState.update {
-                it.copy(pinDialogState = PinDialogState.Editing(pin))
+            _uiState.update { it.copy(hasLocationPermission = hasPermission) }
+
+            // Start location updates if permission is already granted
+            if (hasPermission) {
+                startLocationUpdates()
             }
         }
-    }
 
-    /**
-     * Updates the selected status in the dialog.
-     */
-    fun onDialogStatusSelected(status: PinStatus) {
-        val currentState = _uiState.value.pinDialogState
-        _uiState.update {
-            it.copy(
-                pinDialogState = when (currentState) {
-                    is PinDialogState.Creating -> currentState.copy(selectedStatus = status)
-                    is PinDialogState.Editing -> currentState.copy(selectedStatus = status)
-                    is PinDialogState.Hidden -> currentState
-                }
-            )
-        }
-    }
-
-    /**
-     * Confirms the pin creation or edit from the dialog.
-     */
-    fun confirmPinDialog() {
-        val dialogState = _uiState.value.pinDialogState
-        viewModelScope.launch {
-            try {
-                when (dialogState) {
-                    is PinDialogState.Creating -> {
-                        val pin = Pin.fromLngLat(
-                            longitude = dialogState.location.longitude,
-                            latitude = dialogState.location.latitude,
-                            status = dialogState.selectedStatus
-                        )
-                        pinRepository.addPin(pin)
-                    }
-                    is PinDialogState.Editing -> {
-                        val updatedPin = dialogState.pin.withStatus(dialogState.selectedStatus)
-                        pinRepository.updatePin(updatedPin)
-                    }
-                    is PinDialogState.Hidden -> {
-                        // No-op
-                    }
-                }
-                dismissPinDialog()
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(error = "Failed to save pin: ${e.message}")
-                }
+        /**
+         * Called when location permission result is received.
+         */
+        fun onLocationPermissionResult(granted: Boolean) {
+            _uiState.update { it.copy(hasLocationPermission = granted) }
+            if (granted) {
+                startLocationUpdates()
             }
         }
-    }
 
-    /**
-     * Dismisses the pin dialog.
-     */
-    fun dismissPinDialog() {
-        _uiState.update {
-            it.copy(pinDialogState = PinDialogState.Hidden)
-        }
-    }
+        /**
+         * Fetches the user's current location.
+         */
+        fun fetchCurrentLocation() {
+            if (!_uiState.value.hasLocationPermission) {
+                return
+            }
 
-    /**
-     * Deletes the pin being edited in the dialog.
-     */
-    fun deletePinFromDialog() {
-        val dialogState = _uiState.value.pinDialogState
-        if (dialogState is PinDialogState.Editing) {
             viewModelScope.launch {
                 try {
-                    pinRepository.deletePin(dialogState.pin)
+                    @Suppress("MissingPermission")
+                    val location = fusedLocationClient.lastLocation.await()
+                    if (location != null) {
+                        _uiState.update {
+                            it.copy(
+                                currentLocation =
+                                    Location(
+                                        latitude = location.latitude,
+                                        longitude = location.longitude,
+                                    ),
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    _uiState.update {
+                        it.copy(error = "Failed to get location: ${e.message}")
+                    }
+                }
+            }
+        }
+
+        /**
+         * Shows the dialog to create a new pin at the specified location.
+         */
+        fun showCreatePinDialog(
+            longitude: Double,
+            latitude: Double,
+        ) {
+            val location = Location.fromLngLat(longitude, latitude)
+            _uiState.update {
+                it.copy(pinDialogState = PinDialogState.Creating(location))
+            }
+        }
+
+        /**
+         * Shows the dialog to edit an existing pin.
+         */
+        fun showEditPinDialog(pinId: String) {
+            val pin = _uiState.value.pins.find { it.id == pinId }
+            if (pin != null) {
+                _uiState.update {
+                    it.copy(pinDialogState = PinDialogState.Editing(pin))
+                }
+            }
+        }
+
+        /**
+         * Updates the selected status in the dialog.
+         */
+        fun onDialogStatusSelected(status: PinStatus) {
+            val currentState = _uiState.value.pinDialogState
+            _uiState.update {
+                it.copy(
+                    pinDialogState =
+                        when (currentState) {
+                            is PinDialogState.Creating -> currentState.copy(selectedStatus = status)
+                            is PinDialogState.Editing -> currentState.copy(selectedStatus = status)
+                            is PinDialogState.Hidden -> currentState
+                        },
+                )
+            }
+        }
+
+        /**
+         * Confirms the pin creation or edit from the dialog.
+         */
+        fun confirmPinDialog() {
+            val dialogState = _uiState.value.pinDialogState
+            viewModelScope.launch {
+                try {
+                    when (dialogState) {
+                        is PinDialogState.Creating -> {
+                            val pin =
+                                Pin.fromLngLat(
+                                    longitude = dialogState.location.longitude,
+                                    latitude = dialogState.location.latitude,
+                                    status = dialogState.selectedStatus,
+                                )
+                            pinRepository.addPin(pin)
+                        }
+                        is PinDialogState.Editing -> {
+                            val updatedPin = dialogState.pin.withStatus(dialogState.selectedStatus)
+                            pinRepository.updatePin(updatedPin)
+                        }
+                        is PinDialogState.Hidden -> {
+                            // No-op
+                        }
+                    }
                     dismissPinDialog()
                 } catch (e: Exception) {
                     _uiState.update {
-                        it.copy(error = "Failed to delete pin: ${e.message}")
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Clears any error message.
-     */
-    fun clearError() {
-        _uiState.update { it.copy(error = null) }
-    }
-
-    /**
-     * Returns the current location for camera positioning.
-     */
-    fun getCurrentLocationForCamera(): Location? {
-        return _uiState.value.currentLocation
-    }
-
-    /**
-     * Starts continuous location updates.
-     * This enables real-time tracking of the user's location as they move.
-     */
-    @Suppress("MissingPermission")
-    private fun startLocationUpdates() {
-        if (!_uiState.value.hasLocationPermission) {
-            return
-        }
-
-        // Stop any existing updates first
-        stopLocationUpdates()
-
-        val locationRequest = LocationRequest.Builder(
-            Priority.PRIORITY_HIGH_ACCURACY,
-            10000L // Update every 10 seconds
-        ).apply {
-            setMinUpdateIntervalMillis(5000L) // But not more frequently than every 5 seconds
-            setWaitForAccurateLocation(false)
-        }.build()
-
-        locationCallback = object : LocationCallback() {
-            override fun onLocationResult(locationResult: LocationResult) {
-                locationResult.lastLocation?.let { location ->
-                    _uiState.update {
-                        it.copy(
-                            currentLocation = Location(
-                                latitude = location.latitude,
-                                longitude = location.longitude
-                            )
-                        )
+                        it.copy(error = "Failed to save pin: ${e.message}")
                     }
                 }
             }
         }
 
-        fusedLocationClient.requestLocationUpdates(
-            locationRequest,
-            locationCallback!!,
-            null // Use main looper
-        )
-    }
+        /**
+         * Dismisses the pin dialog.
+         */
+        fun dismissPinDialog() {
+            _uiState.update {
+                it.copy(pinDialogState = PinDialogState.Hidden)
+            }
+        }
 
-    /**
-     * Stops location updates to save battery when the ViewModel is cleared.
-     */
-    private fun stopLocationUpdates() {
-        locationCallback?.let {
-            fusedLocationClient.removeLocationUpdates(it)
-            locationCallback = null
+        /**
+         * Deletes the pin being edited in the dialog.
+         */
+        fun deletePinFromDialog() {
+            val dialogState = _uiState.value.pinDialogState
+            if (dialogState is PinDialogState.Editing) {
+                viewModelScope.launch {
+                    try {
+                        pinRepository.deletePin(dialogState.pin)
+                        dismissPinDialog()
+                    } catch (e: Exception) {
+                        _uiState.update {
+                            it.copy(error = "Failed to delete pin: ${e.message}")
+                        }
+                    }
+                }
+            }
+        }
+
+        /**
+         * Clears any error message.
+         */
+        fun clearError() {
+            _uiState.update { it.copy(error = null) }
+        }
+
+        /**
+         * Returns the current location for camera positioning.
+         */
+        fun getCurrentLocationForCamera(): Location? {
+            return _uiState.value.currentLocation
+        }
+
+        /**
+         * Starts continuous location updates.
+         * This enables real-time tracking of the user's location as they move.
+         */
+        @Suppress("MissingPermission")
+        private fun startLocationUpdates() {
+            if (!_uiState.value.hasLocationPermission) {
+                return
+            }
+
+            // Stop any existing updates first
+            stopLocationUpdates()
+
+            val locationRequest =
+                LocationRequest.Builder(
+                    Priority.PRIORITY_HIGH_ACCURACY,
+                    10000L, // Update every 10 seconds
+                ).apply {
+                    setMinUpdateIntervalMillis(5000L) // But not more frequently than every 5 seconds
+                    setWaitForAccurateLocation(false)
+                }.build()
+
+            locationCallback =
+                object : LocationCallback() {
+                    override fun onLocationResult(locationResult: LocationResult) {
+                        locationResult.lastLocation?.let { location ->
+                            _uiState.update {
+                                it.copy(
+                                    currentLocation =
+                                        Location(
+                                            latitude = location.latitude,
+                                            longitude = location.longitude,
+                                        ),
+                                )
+                            }
+                        }
+                    }
+                }
+
+            fusedLocationClient.requestLocationUpdates(
+                locationRequest,
+                locationCallback!!,
+                null, // Use main looper
+            )
+        }
+
+        /**
+         * Stops location updates to save battery when the ViewModel is cleared.
+         */
+        private fun stopLocationUpdates() {
+            locationCallback?.let {
+                fusedLocationClient.removeLocationUpdates(it)
+                locationCallback = null
+            }
         }
     }
-}

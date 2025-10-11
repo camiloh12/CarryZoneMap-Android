@@ -4,7 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class LocationTest {
-
     @Test
     fun `creates location with valid coordinates`() {
         val location = Location(latitude = 40.7128, longitude = -74.0060)

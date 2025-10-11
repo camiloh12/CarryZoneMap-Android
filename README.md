@@ -71,7 +71,8 @@ This app follows **Clean Architecture** principles with **MVVM** pattern:
 - ✅ Hilt dependency injection
 - ✅ Room database with type-safe DAOs
 - ✅ Proper error handling and loading states
-- ✅ Testable architecture (unit test ready)
+- ✅ Comprehensive testing (81 unit tests, 100% pass rate)
+- ✅ Code quality tools (Detekt + KtLint)
 
 ## 🚀 Getting Started
 
@@ -220,6 +221,68 @@ class MapViewModelTest {
 }
 ```
 
+### Current Test Coverage
+
+✅ **81 unit tests** with **100% pass rate**:
+- 27 tests for domain models (Location, Pin, PinStatus)
+- 25 tests for mappers (EntityMapper, PinMapper)
+- 12 tests for PinRepository
+- 10 tests for MapViewModel
+- 7 tests for legacy components
+
+All tests use best practices:
+- Robolectric for Android framework testing
+- Turbine for Flow testing
+- Fake repositories for ViewModel testing
+- Mockito for mocking dependencies
+
+## 🔍 Code Quality
+
+This project uses **static analysis** and **formatting tools** to maintain code quality:
+
+### Detekt (Static Analysis)
+
+```bash
+# Run Detekt analysis
+./gradlew detekt
+```
+
+**Configuration** (`detekt.yml`):
+- Complexity thresholds adjusted for Compose functions
+- Android-specific rules enabled
+- Magic number exceptions for coordinates and constants
+- **Current status**: ✅ 0 violations
+
+### KtLint (Code Formatting)
+
+```bash
+# Check code formatting
+./gradlew ktlintCheck
+
+# Auto-format code
+./gradlew ktlintFormat
+```
+
+**Configuration**:
+- Android conventions enabled
+- Compose-specific function naming allowed (capital letter functions)
+- Wildcard imports allowed for Compose packages
+- **Current status**: ✅ Passing (Compose-specific warnings suppressed)
+
+### Running All Quality Checks
+
+```bash
+# Run tests + Detekt + KtLint in one command
+./gradlew check
+```
+
+This will:
+1. Compile the code
+2. Run all unit tests
+3. Run Detekt static analysis
+4. Run KtLint formatting checks
+5. Generate reports in `app/build/reports/`
+
 ## 🔧 Configuration
 
 ### Gradle Properties
@@ -357,9 +420,9 @@ offline-first sync logic."
 
 ### Phase 6: Polish & Production
 
-- [ ] **Code Quality**
-  - [ ] Add Detekt for static analysis
-  - [ ] Add KtLint for code formatting
+- [x] **Code Quality** ✅
+  - [x] Add Detekt for static analysis
+  - [x] Add KtLint for code formatting
   - [ ] Configure ProGuard for release builds
   - [ ] Set up CI/CD pipeline
 

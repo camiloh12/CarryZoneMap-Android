@@ -17,44 +17,45 @@ import javax.inject.Singleton
  * @property pinDao The Data Access Object for pin database operations
  */
 @Singleton
-class PinRepositoryImpl @Inject constructor(
-    private val pinDao: PinDao
-) : PinRepository {
+class PinRepositoryImpl
+    @Inject
+    constructor(
+        private val pinDao: PinDao,
+    ) : PinRepository {
+        override fun getAllPins(): Flow<List<Pin>> {
+            return pinDao.getAllPins().map { entities ->
+                entities.toDomainModels()
+            }
+        }
 
-    override fun getAllPins(): Flow<List<Pin>> {
-        return pinDao.getAllPins().map { entities ->
-            entities.toDomainModels()
+        override suspend fun getPinById(pinId: String): Pin? {
+            return pinDao.getPinById(pinId)?.toDomain()
+        }
+
+        override suspend fun addPin(pin: Pin) {
+            pinDao.insertPin(pin.toEntity())
+        }
+
+        override suspend fun updatePin(pin: Pin) {
+            pinDao.updatePin(pin.toEntity())
+        }
+
+        override suspend fun deletePin(pin: Pin) {
+            pinDao.deletePin(pin.toEntity())
+        }
+
+        override suspend fun deleteAllPins() {
+            pinDao.deleteAllPins()
+        }
+
+        override suspend fun cyclePinStatus(pinId: String): Boolean {
+            val pin = getPinById(pinId) ?: return false
+            val updatedPin = pin.withNextStatus()
+            updatePin(updatedPin)
+            return true
+        }
+
+        override suspend fun getPinCount(): Int {
+            return pinDao.getPinCount()
         }
     }
-
-    override suspend fun getPinById(pinId: String): Pin? {
-        return pinDao.getPinById(pinId)?.toDomain()
-    }
-
-    override suspend fun addPin(pin: Pin) {
-        pinDao.insertPin(pin.toEntity())
-    }
-
-    override suspend fun updatePin(pin: Pin) {
-        pinDao.updatePin(pin.toEntity())
-    }
-
-    override suspend fun deletePin(pin: Pin) {
-        pinDao.deletePin(pin.toEntity())
-    }
-
-    override suspend fun deleteAllPins() {
-        pinDao.deleteAllPins()
-    }
-
-    override suspend fun cyclePinStatus(pinId: String): Boolean {
-        val pin = getPinById(pinId) ?: return false
-        val updatedPin = pin.withNextStatus()
-        updatePin(updatedPin)
-        return true
-    }
-
-    override suspend fun getPinCount(): Int {
-        return pinDao.getPinCount()
-    }
-}

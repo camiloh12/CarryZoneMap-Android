@@ -8,7 +8,7 @@ package com.carryzonemap.app.domain.model
  */
 data class Location(
     val latitude: Double,
-    val longitude: Double
+    val longitude: Double,
 ) {
     init {
         require(latitude in -90.0..90.0) { "Latitude must be between -90 and 90" }
@@ -19,7 +19,10 @@ data class Location(
         /**
          * Creates a Location from longitude and latitude (reversed order, MapLibre convention)
          */
-        fun fromLngLat(longitude: Double, latitude: Double): Location {
+        fun fromLngLat(
+            longitude: Double,
+            latitude: Double,
+        ): Location {
             return Location(latitude, longitude)
         }
     }

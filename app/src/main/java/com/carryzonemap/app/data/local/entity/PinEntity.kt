@@ -29,5 +29,5 @@ data class PinEntity(
     val votes: Int = 0,
     val createdBy: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
-    val lastModified: Long = System.currentTimeMillis()
+    val lastModified: Long = System.currentTimeMillis(),
 )

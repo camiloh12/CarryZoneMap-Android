@@ -14,7 +14,6 @@ import org.maplibre.android.maps.Style
 import org.maplibre.geojson.Feature
 
 class MapFacade {
-
     private lateinit var featureDataStore: FeatureDataStore
     private lateinit var featureLayerManager: FeatureLayerManager
     private lateinit var mapInteractionHandler: MapInteractionHandler
@@ -33,7 +32,7 @@ class MapFacade {
         context: Context,
         map: MapLibreMap,
         onFeaturesChanged: (List<Feature>) -> Unit,
-        initialLocation: LatLng? = null
+        initialLocation: LatLng? = null,
     ) {
         val styleUrl = "$BASE_STYLE_URL${BuildConfig.MAPTILER_API_KEY}"
         println("Style URL: $styleUrl")
@@ -41,12 +40,13 @@ class MapFacade {
         this.map = map // Store the map instance
         featureLayerManager = FeatureLayerManager()
 
-        featureDataStore = FeatureDataStore(context) { features ->
-            currentStyle?.let { style ->
-                featureLayerManager.updateDataSource(style, features)
+        featureDataStore =
+            FeatureDataStore(context) { features ->
+                currentStyle?.let { style ->
+                    featureLayerManager.updateDataSource(style, features)
+                }
+                onFeaturesChanged(features)
             }
-            onFeaturesChanged(features)
-        }
 
         mapSetupOrchestrator.initialize(map, styleUrl, initialLocation) { loadedStyle ->
             this.currentStyle = loadedStyle
@@ -69,7 +69,11 @@ class MapFacade {
     }
 
     @Suppress("MissingPermission")
-    private fun enableLocationComponent(context: Context, map: MapLibreMap, style: Style) {
+    private fun enableLocationComponent(
+        context: Context,
+        map: MapLibreMap,
+        style: Style,
+    ) {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return
         }
@@ -81,7 +85,10 @@ class MapFacade {
         locationComponent.renderMode = RenderMode.COMPASS
     }
 
-    fun addMarker(longitude: Double, latitude: Double) {
+    fun addMarker(
+        longitude: Double,
+        latitude: Double,
+    ) {
         if (::featureDataStore.isInitialized) {
             featureDataStore.addFeature(longitude, latitude)
         } else {

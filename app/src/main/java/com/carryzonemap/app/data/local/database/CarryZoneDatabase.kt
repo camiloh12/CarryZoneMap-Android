@@ -13,10 +13,9 @@ import com.carryzonemap.app.data.local.entity.PinEntity
 @Database(
     entities = [PinEntity::class],
     version = 1,
-    exportSchema = false // Set to false for now; enable later with proper schema location
+    exportSchema = false, // Set to false for now; enable later with proper schema location
 )
 abstract class CarryZoneDatabase : RoomDatabase() {
-
     /**
      * Provides access to pin database operations.
      */
