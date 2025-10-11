@@ -19,6 +19,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.carryzonemap.app.domain.mapper.PinMapper.toFeatures
 import com.carryzonemap.app.map.FeatureDataStore
 import com.carryzonemap.app.map.FeatureLayerManager
+import com.carryzonemap.app.ui.components.PinDialog
 import com.carryzonemap.app.ui.viewmodel.MapViewModel
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
@@ -152,7 +153,7 @@ fun MapScreen(
 
                                     // Set up map interaction listeners
                                     map.addOnMapLongClickListener { latLng ->
-                                        viewModel.addPin(latLng.longitude, latLng.latitude)
+                                        viewModel.showCreatePinDialog(latLng.longitude, latLng.latitude)
                                         true
                                     }
 
@@ -165,7 +166,7 @@ fun MapScreen(
                                         clickedFeatures.firstOrNull()?.let { feature ->
                                             feature.getStringProperty(FeatureDataStore.PROPERTY_FEATURE_ID)
                                                 ?.let { pinId ->
-                                                    viewModel.cyclePinStatus(pinId)
+                                                    viewModel.showEditPinDialog(pinId)
                                                 }
                                         }
                                         true
@@ -185,6 +186,23 @@ fun MapScreen(
                     CircularProgressIndicator()
                 }
             }
+
+            // Pin creation/editing dialog
+            PinDialog(
+                dialogState = uiState.pinDialogState,
+                onStatusSelected = { status ->
+                    viewModel.onDialogStatusSelected(status)
+                },
+                onConfirm = {
+                    viewModel.confirmPinDialog()
+                },
+                onDelete = {
+                    viewModel.deletePinFromDialog()
+                },
+                onDismiss = {
+                    viewModel.dismissPinDialog()
+                }
+            )
         }
     }
 }

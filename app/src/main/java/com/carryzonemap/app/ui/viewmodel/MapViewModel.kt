@@ -11,6 +11,7 @@ import com.carryzonemap.app.domain.model.Pin
 import com.carryzonemap.app.domain.model.PinStatus
 import com.carryzonemap.app.domain.repository.PinRepository
 import com.carryzonemap.app.ui.state.MapUiState
+import com.carryzonemap.app.ui.state.PinDialogState
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -142,51 +143,99 @@ class MapViewModel @Inject constructor(
     }
 
     /**
-     * Adds a new pin at the specified location.
+     * Shows the dialog to create a new pin at the specified location.
      */
-    fun addPin(longitude: Double, latitude: Double) {
-        viewModelScope.launch {
-            try {
-                val pin = Pin.fromLngLat(longitude, latitude)
-                pinRepository.addPin(pin)
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(error = "Failed to add pin: ${e.message}")
-                }
+    fun showCreatePinDialog(longitude: Double, latitude: Double) {
+        val location = Location.fromLngLat(longitude, latitude)
+        _uiState.update {
+            it.copy(pinDialogState = PinDialogState.Creating(location))
+        }
+    }
+
+    /**
+     * Shows the dialog to edit an existing pin.
+     */
+    fun showEditPinDialog(pinId: String) {
+        val pin = _uiState.value.pins.find { it.id == pinId }
+        if (pin != null) {
+            _uiState.update {
+                it.copy(pinDialogState = PinDialogState.Editing(pin))
             }
         }
     }
 
     /**
-     * Cycles the status of a pin (ALLOWED -> UNCERTAIN -> NO_GUN -> ALLOWED).
+     * Updates the selected status in the dialog.
      */
-    fun cyclePinStatus(pinId: String) {
+    fun onDialogStatusSelected(status: PinStatus) {
+        val currentState = _uiState.value.pinDialogState
+        _uiState.update {
+            it.copy(
+                pinDialogState = when (currentState) {
+                    is PinDialogState.Creating -> currentState.copy(selectedStatus = status)
+                    is PinDialogState.Editing -> currentState.copy(selectedStatus = status)
+                    is PinDialogState.Hidden -> currentState
+                }
+            )
+        }
+    }
+
+    /**
+     * Confirms the pin creation or edit from the dialog.
+     */
+    fun confirmPinDialog() {
+        val dialogState = _uiState.value.pinDialogState
         viewModelScope.launch {
             try {
-                val success = pinRepository.cyclePinStatus(pinId)
-                if (!success) {
-                    _uiState.update {
-                        it.copy(error = "Pin not found")
+                when (dialogState) {
+                    is PinDialogState.Creating -> {
+                        val pin = Pin.fromLngLat(
+                            longitude = dialogState.location.longitude,
+                            latitude = dialogState.location.latitude,
+                            status = dialogState.selectedStatus
+                        )
+                        pinRepository.addPin(pin)
+                    }
+                    is PinDialogState.Editing -> {
+                        val updatedPin = dialogState.pin.withStatus(dialogState.selectedStatus)
+                        pinRepository.updatePin(updatedPin)
+                    }
+                    is PinDialogState.Hidden -> {
+                        // No-op
                     }
                 }
+                dismissPinDialog()
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(error = "Failed to update pin: ${e.message}")
+                    it.copy(error = "Failed to save pin: ${e.message}")
                 }
             }
         }
     }
 
     /**
-     * Deletes a pin.
+     * Dismisses the pin dialog.
      */
-    fun deletePin(pin: Pin) {
-        viewModelScope.launch {
-            try {
-                pinRepository.deletePin(pin)
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(error = "Failed to delete pin: ${e.message}")
+    fun dismissPinDialog() {
+        _uiState.update {
+            it.copy(pinDialogState = PinDialogState.Hidden)
+        }
+    }
+
+    /**
+     * Deletes the pin being edited in the dialog.
+     */
+    fun deletePinFromDialog() {
+        val dialogState = _uiState.value.pinDialogState
+        if (dialogState is PinDialogState.Editing) {
+            viewModelScope.launch {
+                try {
+                    pinRepository.deletePin(dialogState.pin)
+                    dismissPinDialog()
+                } catch (e: Exception) {
+                    _uiState.update {
+                        it.copy(error = "Failed to delete pin: ${e.message}")
+                    }
                 }
             }
         }

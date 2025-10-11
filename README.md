@@ -48,8 +48,9 @@ This app follows **Clean Architecture** principles with **MVVM** pattern:
 
 - 📍 **Interactive Map**: Pan, zoom, and explore with MapLibre
 - 📌 **Pin Management**:
-  - Long-press to add pins
-  - Click to cycle status (Allowed → Uncertain → No Guns → Allowed)
+  - Long-press to open dialog and create pins with chosen status
+  - Tap existing pins to edit status or delete
+  - Interactive dialog with visual status picker (green/yellow/red)
   - Pins persist in local Room database
 - 🎨 **Color-Coded Status**:
   - 🟢 Green: Firearms allowed
@@ -120,9 +121,10 @@ This app follows **Clean Architecture** principles with **MVVM** pattern:
 
 1. Grant location permission when prompted
 2. Map will center on your current location
-3. Long-press anywhere to add a pin
-4. Click a pin to cycle through statuses (green → yellow → red → green)
-5. Use the 📍 FAB button to re-center on your location
+3. Long-press anywhere to open the pin creation dialog
+4. Select a status (Allowed/Uncertain/No Guns) and tap "Create"
+5. Tap any existing pin to edit its status or delete it
+6. Use the 📍 FAB button to re-center on your location
 
 ## 📂 Project Structure
 
@@ -155,8 +157,11 @@ app/src/main/java/com/carryzonemap/app/
 │
 ├── ui/                              # Presentation Layer
 │   ├── MapScreen.kt                 # Main Compose UI
+│   ├── components/
+│   │   └── PinDialog.kt             # Pin creation/editing dialog
 │   ├── state/
-│   │   └── MapUiState.kt            # Immutable UI state
+│   │   ├── MapUiState.kt            # Immutable UI state
+│   │   └── PinDialogState.kt        # Dialog state management
 │   └── viewmodel/
 │       └── MapViewModel.kt          # State management
 │
@@ -201,11 +206,13 @@ Example test structure:
 // ViewModelTest with fake repository
 class MapViewModelTest {
     @Test
-    fun `adding pin updates state correctly`() = runTest {
+    fun `creating pin via dialog updates state correctly`() = runTest {
         val fakeRepo = FakePinRepository()
         val viewModel = MapViewModel(fakeRepo, fakeLocationClient, context)
 
-        viewModel.addPin(-122.0, 37.0)
+        viewModel.showCreatePinDialog(-122.0, 37.0)
+        viewModel.onDialogStatusSelected(PinStatus.ALLOWED)
+        viewModel.confirmPinDialog()
 
         val state = viewModel.uiState.first()
         assertEquals(1, state.pins.size)
