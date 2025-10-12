@@ -36,15 +36,17 @@ class SupabasePinDataSource
 
         override suspend fun getAllPins(): Result<List<Pin>> {
             return try {
+                Log.d(TAG, "Fetching all pins from Supabase...")
                 val response =
                     postgrest
                         .from(TABLE_NAME)
                         .select()
                         .decodeList<SupabasePinDto>()
 
+                Log.d(TAG, "Fetched ${response.size} pins from Supabase")
                 Result.success(response.toDomainModels())
             } catch (e: Exception) {
-                Log.e(TAG, "Error fetching all pins", e)
+                Log.e(TAG, "Error fetching all pins from Supabase: ${e.message}", e)
                 Result.failure(e)
             }
         }
@@ -69,6 +71,7 @@ class SupabasePinDataSource
 
         override suspend fun insertPin(pin: Pin): Result<Pin> {
             return try {
+                Log.d(TAG, "Inserting pin to Supabase: ${pin.id} at (${pin.location.longitude}, ${pin.location.latitude})")
                 val dto = pin.toSupabaseDto()
                 val response =
                     postgrest
@@ -77,15 +80,17 @@ class SupabasePinDataSource
                             select()
                         }.decodeSingle<SupabasePinDto>()
 
+                Log.d(TAG, "Successfully inserted pin to Supabase: ${pin.id}")
                 Result.success(response.toDomain())
             } catch (e: Exception) {
-                Log.e(TAG, "Error inserting pin", e)
+                Log.e(TAG, "Error inserting pin ${pin.id} to Supabase: ${e.message}", e)
                 Result.failure(e)
             }
         }
 
         override suspend fun updatePin(pin: Pin): Result<Pin> {
             return try {
+                Log.d(TAG, "Updating pin in Supabase: ${pin.id}")
                 val dto = pin.toSupabaseDto()
                 val response =
                     postgrest
@@ -97,15 +102,17 @@ class SupabasePinDataSource
                             select()
                         }.decodeSingle<SupabasePinDto>()
 
+                Log.d(TAG, "Successfully updated pin in Supabase: ${pin.id}")
                 Result.success(response.toDomain())
             } catch (e: Exception) {
-                Log.e(TAG, "Error updating pin: ${pin.id}", e)
+                Log.e(TAG, "Error updating pin ${pin.id} in Supabase: ${e.message}", e)
                 Result.failure(e)
             }
         }
 
         override suspend fun deletePin(pinId: String): Result<Unit> {
             return try {
+                Log.d(TAG, "Deleting pin from Supabase: $pinId")
                 postgrest
                     .from(TABLE_NAME)
                     .delete {
@@ -114,9 +121,10 @@ class SupabasePinDataSource
                         }
                     }
 
+                Log.d(TAG, "Successfully deleted pin from Supabase: $pinId")
                 Result.success(Unit)
             } catch (e: Exception) {
-                Log.e(TAG, "Error deleting pin: $pinId", e)
+                Log.e(TAG, "Error deleting pin $pinId from Supabase: ${e.message}", e)
                 Result.failure(e)
             }
         }

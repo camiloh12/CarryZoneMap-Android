@@ -233,10 +233,11 @@ SUPABASE_ANON_KEY=your_supabase_anon_key_here
 
 ### Room Database
 - Database name: `carry_zone_db`
-- **Current version: 2** (added sync_queue table)
+- **Current version: 3** (fixed migration consistency)
 - Migrations:
-  - **v1 → v2**: Added `sync_queue` table with index on `pin_id`
-  - Migration defined in `DatabaseModule.kt`
+  - **v1 → v2**: Added `sync_queue` table with index on `pin_id`, added `createdBy` field to pins
+  - **v2 → v3**: No-op migration to force schema consistency for incomplete v2 databases
+  - Migrations defined in `DatabaseModule.kt`
 - `exportSchema = false` (should be enabled with proper directory in production)
 - Tables:
   - `pins`: Pin data with metadata and timestamps

@@ -12,10 +12,11 @@ import com.carryzonemap.app.data.local.entity.SyncQueueEntity
  *
  * Version 1: Initial schema with pins table
  * Version 2: Added sync_queue table and created_by field to pins
+ * Version 3: Fixed migration - ensuring schema consistency
  */
 @Database(
     entities = [PinEntity::class, SyncQueueEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false, // Set to false for now; enable later with proper schema location
 )
 abstract class CarryZoneDatabase : RoomDatabase() {

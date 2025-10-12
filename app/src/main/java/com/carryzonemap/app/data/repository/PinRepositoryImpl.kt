@@ -55,15 +55,26 @@ class PinRepositoryImpl
          * Adds a pin using offline-first pattern:
          * 1. Save to local database immediately
          * 2. Queue for remote upload
+         * 3. Trigger immediate sync if online
          */
         override suspend fun addPin(pin: Pin) {
-            Log.d(TAG, "Adding pin: ${pin.id}")
+            Log.d(TAG, "Adding pin: ${pin.id} at (${pin.location.longitude}, ${pin.location.latitude})")
 
             // Step 1: Save to local database immediately (optimistic update)
             pinDao.insertPin(pin.toEntity())
+            Log.d(TAG, "Pin saved to local database: ${pin.id}")
 
             // Step 2: Queue for remote sync
             syncManager.queuePinForUpload(pin)
+            Log.d(TAG, "Pin queued for upload: ${pin.id}")
+
+            // Step 3: Trigger immediate sync (will only sync if online)
+            val syncResult = syncManager.syncWithRemote()
+            if (syncResult.isSuccess) {
+                Log.d(TAG, "Immediate sync succeeded for pin: ${pin.id}")
+            } else {
+                Log.w(TAG, "Immediate sync failed for pin: ${pin.id}, will retry later: ${syncResult.exceptionOrNull()?.message}")
+            }
         }
 
         /**

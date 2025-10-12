@@ -23,10 +23,14 @@ object DatabaseModule {
     /**
      * Migration from version 1 to version 2.
      * Adds the sync_queue table for offline-first sync functionality.
+     * Adds createdBy field to pins table.
      */
     private val MIGRATION_1_2 =
         object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
+                // Add createdBy column to pins table
+                db.execSQL("ALTER TABLE pins ADD COLUMN createdBy TEXT")
+
                 // Create sync_queue table
                 db.execSQL(
                     """
@@ -46,6 +50,19 @@ object DatabaseModule {
             }
         }
 
+    /**
+     * Migration from version 2 to version 3.
+     * No-op migration to force schema consistency check and recreation
+     * for databases that were created with incomplete v2 migration.
+     */
+    private val MIGRATION_2_3 =
+        object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // No changes needed - this migration exists to trigger
+                // fallbackToDestructiveMigration for inconsistent v2 databases
+            }
+        }
+
     @Provides
     @Singleton
     fun provideCarryZoneDatabase(
@@ -56,7 +73,7 @@ object DatabaseModule {
             CarryZoneDatabase::class.java,
             CarryZoneDatabase.DATABASE_NAME,
         )
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .fallbackToDestructiveMigration() // For development - remove in production
             .build()
     }

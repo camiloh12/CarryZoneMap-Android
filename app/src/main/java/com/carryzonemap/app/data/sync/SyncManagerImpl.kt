@@ -8,7 +8,6 @@ import com.carryzonemap.app.data.mapper.EntityMapper.toDomain
 import com.carryzonemap.app.data.mapper.EntityMapper.toEntity
 import com.carryzonemap.app.data.network.NetworkMonitor
 import com.carryzonemap.app.data.remote.datasource.RemotePinDataSource
-import com.carryzonemap.app.data.sync.SyncOperation.Companion.toTypeString
 import com.carryzonemap.app.domain.model.Pin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,6 +53,8 @@ class SyncManagerImpl
                     timestamp = System.currentTimeMillis(),
                 )
             syncQueueDao.insertOperation(operation)
+            val queueCount = syncQueueDao.getOperationCount()
+            Log.d(TAG, "Pin queued successfully. Total operations in queue: $queueCount")
         }
 
         override suspend fun queuePinForUpdate(pin: Pin) {
@@ -85,29 +86,37 @@ class SyncManagerImpl
         }
 
         override suspend fun syncWithRemote(): Result<Unit> {
-            Log.d(TAG, "Starting sync with remote")
+            val pendingCount = syncQueueDao.getOperationCount()
+            Log.d(TAG, "=== SYNC STARTED === Pending operations: $pendingCount")
 
             // Check if we're online
-            if (!networkMonitor.isOnline.first()) {
+            val isOnline = networkMonitor.isOnline.first()
+            Log.d(TAG, "Network status: ${if (isOnline) "ONLINE" else "OFFLINE"}")
+
+            if (!isOnline) {
                 Log.w(TAG, "Sync skipped: device is offline")
                 _syncStatus.value = SyncStatus.Error("Device is offline", retryable = true)
                 return Result.failure(Exception("Device is offline"))
             }
 
             return try {
-                _syncStatus.value = SyncStatus.Syncing(syncQueueDao.getOperationCount())
+                _syncStatus.value = SyncStatus.Syncing(pendingCount)
 
                 // Step 1: Upload pending operations
+                Log.d(TAG, "Phase 1: Uploading $pendingCount pending operations...")
                 val uploadCount = uploadPendingOperations()
+                Log.d(TAG, "Phase 1 complete: $uploadCount operations uploaded successfully")
 
                 // Step 2: Download remote changes
+                Log.d(TAG, "Phase 2: Downloading remote changes...")
                 val downloadCount = downloadRemoteChanges()
+                Log.d(TAG, "Phase 2 complete: $downloadCount pins downloaded/merged")
 
-                Log.d(TAG, "Sync completed: uploaded=$uploadCount, downloaded=$downloadCount")
+                Log.d(TAG, "=== SYNC COMPLETED === Uploaded: $uploadCount, Downloaded: $downloadCount")
                 _syncStatus.value = SyncStatus.Success(uploadCount, downloadCount)
                 Result.success(Unit)
             } catch (e: Exception) {
-                Log.e(TAG, "Sync failed", e)
+                Log.e(TAG, "=== SYNC FAILED === Error: ${e.message}", e)
                 _syncStatus.value = SyncStatus.Error(e.message ?: "Unknown error", retryable = true)
                 Result.failure(e)
             }

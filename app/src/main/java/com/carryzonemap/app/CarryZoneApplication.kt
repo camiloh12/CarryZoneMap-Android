@@ -1,8 +1,10 @@
 package com.carryzonemap.app
 
 import android.app.Application
+import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.carryzonemap.app.data.sync.SyncScheduler
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -13,8 +15,15 @@ import javax.inject.Inject
  */
 @HiltAndroidApp
 class CarryZoneApplication : Application(), Configuration.Provider {
+    companion object {
+        private const val TAG = "CarryZoneApp"
+    }
+
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
+
+    @Inject
+    lateinit var syncScheduler: SyncScheduler
 
     override val workManagerConfiguration: Configuration
         get() =
@@ -22,4 +31,13 @@ class CarryZoneApplication : Application(), Configuration.Provider {
                 .Builder()
                 .setWorkerFactory(workerFactory)
                 .build()
+
+    override fun onCreate() {
+        super.onCreate()
+        Log.d(TAG, "Application starting")
+
+        // Schedule periodic sync with remote server
+        syncScheduler.schedulePeriodicSync()
+        Log.d(TAG, "Background sync scheduled")
+    }
 }
