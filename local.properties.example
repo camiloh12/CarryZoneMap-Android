@@ -1,0 +1,15 @@
+# Local Properties Example
+# Copy this file to local.properties and fill in your actual values
+# DO NOT commit local.properties to version control
+
+# MapTiler API Key (optional - demo tiles work without it)
+# Get a free key at https://www.maptiler.com/
+MAPTILER_API_KEY=your_maptiler_api_key_here
+
+# Supabase Configuration
+# Get these from your Supabase project dashboard: https://supabase.com/dashboard
+# Project Settings > API > Project URL
+SUPABASE_URL=https://your-project-id.supabase.co
+
+# Project Settings > API > Project API keys > anon public
+SUPABASE_ANON_KEY=your_supabase_anon_key_here

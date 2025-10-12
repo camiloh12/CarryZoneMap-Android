@@ -5,6 +5,8 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
 }
 
 // Read API key from local.properties
@@ -34,6 +36,10 @@ android {
 
         // Expose the API key as a BuildConfig field
         buildConfigField("String", "MAPTILER_API_KEY", "\"${localProperties.getProperty("MAPTILER_API_KEY") ?: ""}\"")
+
+        // Supabase configuration
+        buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL") ?: ""}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties.getProperty("SUPABASE_ANON_KEY") ?: ""}\"")
     }
 
     buildTypes {
@@ -58,9 +64,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true // Enable BuildConfig generation
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
     }
     packaging {
         resources {
@@ -101,6 +104,26 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.3")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.3")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.3")
+
+    // Supabase
+    implementation("io.github.jan-tennert.supabase:postgrest-kt:3.0.1")
+    implementation("io.github.jan-tennert.supabase:realtime-kt:3.0.1")
+    implementation("io.github.jan-tennert.supabase:auth-kt:3.0.1")
+    implementation("io.github.jan-tennert.supabase:storage-kt:3.0.1")
+
+    // Ktor for networking (required by Supabase)
+    implementation("io.ktor:ktor-client-android:3.0.1")
+    implementation("io.ktor:ktor-client-core:3.0.1")
+    implementation("io.ktor:ktor-utils:3.0.1")
+
+    // Kotlinx Serialization (required by Supabase)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
+
+    // WorkManager for background sync
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+    implementation("androidx.hilt:hilt-work:1.2.0")
+    ksp("androidx.hilt:hilt-compiler:1.2.0")
 
     // Unit Testing
     testImplementation("junit:junit:4.13.2")

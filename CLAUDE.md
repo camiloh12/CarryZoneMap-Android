@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CarryZoneMap is a modern Android app for mapping carry zones, built with Clean Architecture + MVVM. The app was refactored from a basic MVP to production-ready architecture in October 2025. Key architectural decisions and completed work are documented in `REFACTORING_PLAN.md` and `REFACTORING_SUMMARY.md`.
+CarryZoneMap is a modern Android app for mapping carry zones with **cloud synchronization**, built with Clean Architecture + MVVM + Offline-First Sync. The app was refactored from a basic MVP to production-ready architecture in October 2025, and Supabase integration was completed for authentication and real-time cloud sync. Key architectural decisions and completed work are documented in `REFACTORING_PLAN.md`, `REFACTORING_SUMMARY.md`, and `SUPABASE_PROGRESS.md`.
 
 ## Build & Development Commands
 
@@ -48,45 +48,74 @@ CarryZoneMap is a modern Android app for mapping carry zones, built with Clean A
 
 ### Clean Architecture Layers
 
-The codebase follows **Clean Architecture with MVVM**, strictly separating concerns across three layers:
+The codebase follows **Clean Architecture with MVVM + Offline-First Sync**, strictly separating concerns across three layers:
 
 ```
 Presentation (ui/) → Domain (domain/) → Data (data/)
      ↓                    ↓                  ↓
-  Compose UI      Business Logic      Room Database
-  ViewModel         Models            Repository Impl
-  StateFlow        Repository IF       DAOs, Entities
+  Compose UI      Business Logic      Hybrid Sync
+  ViewModel         Models            ┌──────────────────┐
+  StateFlow        Repository IF      │ PinRepositoryImpl│
+                                      └────────┬─────────┘
+                                               │
+                       ┌───────────────────────┼───────────────────────┐
+                       ↓                       ↓                       ↓
+                 Local (Room)          SyncManager              Remote (Supabase)
+                 • PinDao              • Queue ops             • Auth
+                 • SyncQueueDao        • Upload/Download       • Postgrest
+                 • Instant reads       • Conflict res.         • Realtime
+                                       • NetworkMonitor
 ```
 
-**Key Principle**: Dependencies only flow inward. Domain layer has ZERO Android dependencies.
+**Key Principles**:
+- Dependencies only flow inward. Domain layer has ZERO Android dependencies.
+- Offline-first: All writes go to Room immediately, then sync to Supabase when online.
+- Queue-based sync: Operations queued and retried automatically on failure.
 
 ### Layer Responsibilities
 
 **Domain Layer** (`domain/`):
 - **Pure Kotlin** business logic - no Android framework imports
-- `model/`: Core entities (Pin, Location, PinStatus, PinMetadata)
-- `repository/`: Repository interfaces (contracts)
+- `model/`: Core entities (Pin, User, Location, PinStatus, PinMetadata)
+- `repository/`: Repository interfaces (PinRepository, AuthRepository)
 - `mapper/`: Domain ↔ MapLibre Feature conversions
 
 **Data Layer** (`data/`):
-- Implements domain repository interfaces
-- `local/`: Room database (entities, DAOs, database class)
+- Implements domain repository interfaces with hybrid sync
+- `local/`: Room database (entities, DAOs, database class, migrations)
+  - `PinEntity`: Local pin storage
+  - `SyncQueueEntity`: Queue for pending operations
+- `remote/`: Supabase integration (DTOs, mappers, data sources)
+  - `SupabasePinDto`: Data transfer object for Supabase API
+  - `SupabaseMapper`: DTO ↔ Domain conversions
+  - `SupabasePinDataSource`: Remote CRUD + real-time subscriptions
+- `sync/`: Offline-first sync infrastructure
+  - `SyncManager`: Orchestrates upload/download/conflict resolution
+  - `SyncWorker`: Background periodic sync with WorkManager
+  - `SyncOperation`: Sealed class for Create/Update/Delete operations
+  - `SyncStatus`: Sealed class for sync state tracking
+- `network/`: Network monitoring (NetworkMonitor with reactive Flow)
 - `repository/`: Repository implementations
+  - `PinRepositoryImpl`: Offline-first with SyncManager integration
+  - `SupabaseAuthRepository`: Email/password authentication
 - `mapper/`: Entity ↔ Domain conversions
-- Future: `remote/` will be added for cloud sync (Firestore/Supabase)
 
 **Presentation Layer** (`ui/`):
 - Jetpack Compose UI + ViewModels
 - `MapViewModel`: Owns `MapUiState` (StateFlow), coordinates repository calls
+- `AuthViewModel`: Manages authentication state and operations
 - `MapScreen`: Pure UI rendering, collects StateFlow, no business logic
+- `auth/LoginScreen`: Email/password login and signup UI
 - `components/PinDialog`: Reusable dialog for pin creation/editing
 - `state/PinDialogState`: Sealed class managing dialog states (Hidden/Creating/Editing)
 - ViewModels injected via Hilt's `@HiltViewModel`
 
 **Dependency Injection** (`di/`):
 - Hilt modules provide dependencies
-- `DatabaseModule`: Room database and DAOs
+- `DatabaseModule`: Room database, DAOs, and migrations
 - `RepositoryModule`: Binds repository interfaces to implementations
+- `SupabaseModule`: Supabase client and service providers
+- `SyncModule`: SyncManager binding
 - `LocationModule`: Location services (FusedLocationProviderClient)
 
 **Legacy** (`map/`):
@@ -125,6 +154,31 @@ Presentation (ui/) → Domain (domain/) → Data (data/)
 
 **Key Insight**: Dialog-based flow provides explicit user control over pin states, separating interaction (dialog) from persistence (repository). Data flows: UI → ViewModel → Dialog State → User Selection → Repository → Database → Flow → ViewModel → StateFlow → UI
 
+**Offline-First Sync Flow (Hybrid Architecture):**
+1. User creates/updates/deletes pin → `ViewModel` calls `PinRepository` operation
+2. `PinRepositoryImpl` **immediately** writes to Room (instant UI update, works offline)
+3. `PinRepositoryImpl` queues operation → `SyncManager.queuePinForUpload/Update/Deletion(pin)`
+4. `SyncManager` inserts `SyncQueueEntity` into `sync_queue` table
+5. Room Flow emits → UI updates instantly (user sees change immediately)
+6. `NetworkMonitor` detects online status → triggers sync
+7. `SyncManager.syncWithRemote()` called (by network callback or `SyncWorker`)
+8. **Upload phase**: `SyncManager` reads pending operations from `sync_queue`
+9. For each operation: calls `RemotePinDataSource` (Supabase) to upload
+10. On success: removes operation from `sync_queue`
+11. On failure: increments retry count (max 3 retries), logs error
+12. **Download phase**: Fetches all pins from Supabase
+13. **Conflict resolution**: Last-write-wins using `lastModified` timestamps
+14. Newer remote pins → update Room → Flow emits → UI updates
+15. Background sync continues via `SyncWorker` (periodic WorkManager task)
+
+**Key Sync Principles**:
+- **Instant responsiveness**: Local writes complete in milliseconds, UI never blocks
+- **Works offline**: All CRUD operations function without network
+- **Automatic retry**: Failed operations retry up to 3 times with exponential backoff
+- **Conflict resolution**: Last-write-wins (newest `lastModified` timestamp wins)
+- **Queue-based**: Operations survive app restarts (persisted in Room)
+- **Network-aware**: Only syncs when online, conserves battery/data
+
 ### State Management
 
 - **Single source of truth**: `MapUiState` in `MapViewModel`
@@ -138,18 +192,21 @@ Presentation (ui/) → Domain (domain/) → Data (data/)
 
 ### Mappers
 
-Three mapper objects handle conversions between layers:
+Four mapper objects handle conversions between layers:
 
 1. **PinMapper** (domain/mapper): Domain Pin ↔ MapLibre Feature
 2. **EntityMapper** (data/mapper): Domain Pin ↔ Room PinEntity
+3. **SupabaseMapper** (data/remote/mapper): Domain Pin ↔ SupabasePinDto
 
 These are object singletons with extension functions for clean syntax.
 
 When adding new fields to Pin:
 1. Add to domain `Pin` model
-2. Add to `PinEntity` (database)
-3. Update both mappers
-4. Create Room migration if schema changes
+2. Add to `PinEntity` (Room database table)
+3. Add to `SupabasePinDto` (remote API DTO)
+4. Update all three mappers (PinMapper, EntityMapper, SupabaseMapper)
+5. Create Room migration if schema changes
+6. Update Supabase migration SQL if remote schema changes
 
 ## Configuration
 
@@ -161,17 +218,30 @@ org.gradle.java.home=/usr/lib/jvm/java-1.21.0-openjdk-amd64
 Adjust path if Java 21 is installed elsewhere.
 
 ### API Keys
-MapTiler API key in `local.properties` (optional - demo tiles work without it):
+Configuration in `local.properties`:
 ```properties
+# MapTiler (optional - demo tiles work without it)
 MAPTILER_API_KEY=your_key_here
+
+# Supabase (required for authentication and sync)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_supabase_anon_key_here
 ```
-Accessed via `BuildConfig.MAPTILER_API_KEY` in MapScreen.
+
+**MapTiler**: Accessed via `BuildConfig.MAPTILER_API_KEY` in MapScreen
+**Supabase**: Get from Supabase dashboard → Settings → API. See `SUPABASE_PROGRESS.md` for setup instructions.
 
 ### Room Database
 - Database name: `carry_zone_db`
-- Version: 1 (initial schema)
+- **Current version: 3** (fixed migration consistency)
+- Migrations:
+  - **v1 → v2**: Added `sync_queue` table with index on `pin_id`, added `createdBy` field to pins
+  - **v2 → v3**: No-op migration to force schema consistency for incomplete v2 databases
+  - Migrations defined in `DatabaseModule.kt`
 - `exportSchema = false` (should be enabled with proper directory in production)
-- Migration strategy: Currently `fallbackToDestructiveMigration()` (dev only)
+- Tables:
+  - `pins`: Pin data with metadata and timestamps
+  - `sync_queue`: Pending sync operations (Create/Update/Delete)
 
 ## Adding New Features
 
@@ -263,6 +333,90 @@ fun MyDialog(
 ) { /* Implementation */ }
 ```
 
+### Pattern: Offline-First Sync Operations
+
+When adding features that need cloud synchronization:
+
+```kotlin
+// In PinRepositoryImpl (example pattern)
+override suspend fun addPin(pin: Pin) {
+    // STEP 1: Write to local database FIRST (instant UI response)
+    pinDao.insertPin(pin.toEntity())
+    Log.d("PinRepository", "Pin saved locally: ${pin.id}")
+
+    // STEP 2: Queue for remote sync (async, non-blocking)
+    syncManager.queuePinForUpload(pin)
+    Log.d("PinRepository", "Pin queued for sync: ${pin.id}")
+
+    // Room Flow automatically emits → ViewModel → UI updates instantly
+}
+
+// In SyncManagerImpl (handles background sync)
+override suspend fun syncWithRemote(): Result<Unit> {
+    try {
+        // Check network status
+        if (!networkMonitor.isOnline.first()) {
+            return Result.failure(Exception("No network connection"))
+        }
+
+        // UPLOAD: Send pending operations to Supabase
+        val pendingOps = syncQueueDao.getAllOperations()
+        pendingOps.forEach { queueItem ->
+            try {
+                when (queueItem.operationType) {
+                    OperationType.CREATE -> {
+                        val pin = pinDao.getPinById(queueItem.pinId)
+                        remotePinDataSource.insertPin(pin.toDomain())
+                    }
+                    OperationType.UPDATE -> { /* ... */ }
+                    OperationType.DELETE -> { /* ... */ }
+                }
+                // Success: remove from queue
+                syncQueueDao.deleteOperation(queueItem.id)
+            } catch (e: Exception) {
+                // Failure: increment retry count
+                if (queueItem.retryCount >= MAX_RETRIES) {
+                    Log.e("SyncManager", "Max retries exceeded for ${queueItem.id}")
+                } else {
+                    syncQueueDao.updateOperation(
+                        queueItem.copy(
+                            retryCount = queueItem.retryCount + 1,
+                            lastError = e.message
+                        )
+                    )
+                }
+            }
+        }
+
+        // DOWNLOAD: Fetch remote changes
+        val remotePins = remotePinDataSource.getAllPins().getOrThrow()
+
+        // CONFLICT RESOLUTION: Last-write-wins
+        remotePins.forEach { remotePin ->
+            val localPin = pinDao.getPinById(remotePin.id)
+            if (localPin == null || remotePin.lastModified > localPin.lastModified) {
+                // Remote is newer, update local
+                pinDao.updatePin(remotePin.toEntity())
+            }
+        }
+
+        return Result.success(Unit)
+    } catch (e: Exception) {
+        Log.e("SyncManager", "Sync failed", e)
+        return Result.failure(e)
+    }
+}
+```
+
+**Key Principles for Sync Features**:
+1. **Always write local first**: UI must remain responsive, never wait for network
+2. **Queue operations**: Use `SyncQueueEntity` to persist pending operations
+3. **Idempotent operations**: Remote operations should be safe to retry
+4. **Conflict resolution**: Implement last-write-wins or custom logic
+5. **Retry logic**: Max 3 retries with exponential backoff
+6. **Error handling**: Log errors, update sync status, don't crash
+7. **Network awareness**: Check `NetworkMonitor` before attempting sync
+
 ## Testing Strategy
 
 ### Unit Tests (Comprehensive Coverage Achieved)
@@ -321,30 +475,70 @@ Currently using `fallbackToDestructiveMigration()` - this **deletes all data** o
 
 ## Future Work Priorities
 
-See `REFACTORING_PLAN.md` for detailed phases. Key priorities:
+See `REFACTORING_PLAN.md` and `SUPABASE_PROGRESS.md` for detailed phases.
 
-1. **Phase 3 (Next)**: Write comprehensive tests
-2. **Phase 4**: Enhanced features (search, filtering, pin details)
-3. **Phase 5**: Cloud sync (add `data/remote/` layer)
-4. **Deprecate `map/` package**: Fully migrate to domain models
+### Completed ✅
+- **Phase 1**: Clean Architecture refactoring with domain/data/presentation layers
+- **Phase 2**: MVVM + StateFlow + Repository pattern
+- **Phase 3**: Comprehensive test suite (81 tests, 100% pass rate)
+- **Phase 4**: Code quality tools (Detekt, KtLint)
+- **Phase 5**: Supabase integration with offline-first sync
+  - Authentication (email/password)
+  - Remote data source with Supabase PostgreSQL
+  - Offline-first sync with SyncManager
+  - Background sync with WorkManager
+  - Queue-based operations with retry logic
+  - Network monitoring and conflict resolution
 
-When adding cloud sync:
-- Create `RemoteDataSource` in `data/remote/`
-- Update `PinRepositoryImpl` to coordinate local + remote
-- Implement offline-first with WorkManager
-- Handle conflict resolution
+### Next Priorities
+1. **Enable Real-time Subscriptions**: Infrastructure ready, needs activation in SyncManager
+2. **Schedule Periodic Sync**: Configure WorkManager to run SyncWorker periodically
+3. **Enhanced Features**: Search, filtering by status, radius queries
+4. **Pin Details**: Notes, photos, face/license plate blurring (OpenCV)
+5. **Social Features**: Voting, comments, moderation
+6. **Deprecate `map/` package**: Fully migrate to domain models
+
+### Working with Supabase
+The app now uses Supabase for:
+- **Authentication**: Email/password via `SupabaseAuthRepository`
+- **Database**: PostgreSQL with PostGIS for geographic queries
+- **Real-time**: Subscription infrastructure (ready to enable)
+- **Sync**: Offline-first queue-based synchronization
+
+When extending Supabase features:
+- DTOs go in `data/remote/dto/`
+- Mappers go in `data/remote/mapper/`
+- Data sources go in `data/remote/datasource/`
+- Always maintain offline-first: write to Room, then queue for sync
+- See `SUPABASE_INTEGRATION_PLAN.md` for architecture decisions
 
 ## Files to Reference
 
+### Architecture & Planning
 - `REFACTORING_PLAN.md`: Phase-by-phase refactoring details
 - `REFACTORING_SUMMARY.md`: What changed, why, and benefits
+- `SUPABASE_INTEGRATION_PLAN.md`: Complete Supabase integration roadmap (Phases 1-5)
+- `SUPABASE_PROGRESS.md`: Implementation progress, setup guide, and troubleshooting
 - `README.md`: User-facing documentation and roadmap
+
+### Code Examples
 - `domain/model/Pin.kt`: Core domain model example
+- `domain/model/User.kt`: User model for authentication
 - `ui/viewmodel/MapViewModel.kt`: ViewModel pattern with dialog state management
+- `ui/auth/AuthViewModel.kt`: Authentication ViewModel example
 - `ui/state/PinDialogState.kt`: Sealed class for dialog state (example pattern)
 - `ui/components/PinDialog.kt`: Reusable dialog component example
-- `data/repository/PinRepositoryImpl.kt`: Repository pattern example
+- `data/repository/PinRepositoryImpl.kt`: **Offline-first repository pattern with sync**
+- `data/repository/SupabaseAuthRepository.kt`: Authentication repository example
+- `data/sync/SyncManagerImpl.kt`: **Sync orchestration with conflict resolution**
+- `data/sync/SyncWorker.kt`: Background sync worker example
+- `data/remote/datasource/SupabasePinDataSource.kt`: Remote data source implementation
+- `data/network/NetworkMonitor.kt`: Network connectivity monitoring
+
+### Testing
 - `app/src/test/`: Comprehensive test suite with 81 tests
+- `app/src/test/java/com/carryzonemap/app/data/repository/PinRepositoryImplTest.kt`: Repository testing example
+- `app/src/test/java/com/carryzonemap/app/ui/viewmodel/MapViewModelTest.kt`: ViewModel testing example
 
 ## Code Style
 
