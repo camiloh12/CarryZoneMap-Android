@@ -8,7 +8,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.carryzonemap.app.domain.model.Location
 import com.carryzonemap.app.domain.model.Pin
+import com.carryzonemap.app.domain.model.PinMetadata
 import com.carryzonemap.app.domain.model.PinStatus
+import com.carryzonemap.app.domain.repository.AuthRepository
 import com.carryzonemap.app.domain.repository.PinRepository
 import com.carryzonemap.app.ui.state.MapUiState
 import com.carryzonemap.app.ui.state.PinDialogState
@@ -33,6 +35,7 @@ import javax.inject.Inject
  * Manages UI state and coordinates between the UI and domain/data layers.
  *
  * @property pinRepository Repository for pin data operations
+ * @property authRepository Repository for authentication operations
  * @property fusedLocationClient Client for accessing device location
  */
 @HiltViewModel
@@ -40,6 +43,7 @@ class MapViewModel
     @Inject
     constructor(
         private val pinRepository: PinRepository,
+        private val authRepository: AuthRepository,
         private val fusedLocationClient: FusedLocationProviderClient,
         @ApplicationContext private val context: Context,
     ) : ViewModel() {
@@ -196,11 +200,21 @@ class MapViewModel
                 try {
                     when (dialogState) {
                         is PinDialogState.Creating -> {
+                            // Get current user ID for createdBy field
+                            val userId = authRepository.currentUserId
+
                             val pin =
-                                Pin.fromLngLat(
-                                    longitude = dialogState.location.longitude,
-                                    latitude = dialogState.location.latitude,
+                                Pin(
+                                    location =
+                                        Location.fromLngLat(
+                                            longitude = dialogState.location.longitude,
+                                            latitude = dialogState.location.latitude,
+                                        ),
                                     status = dialogState.selectedStatus,
+                                    metadata =
+                                        PinMetadata(
+                                            createdBy = userId,
+                                        ),
                                 )
                             pinRepository.addPin(pin)
                         }

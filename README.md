@@ -1,46 +1,57 @@
 # CarryZoneMap
 
-A modern Android application for mapping and tracking carry zones, built with **Kotlin**, **Jetpack Compose**, and **MapLibre**. This project demonstrates production-ready Android architecture with clean separation of concerns, reactive state management, and comprehensive dependency injection.
+A modern Android application for mapping and tracking carry zones with **cloud synchronization**, built with **Kotlin**, **Jetpack Compose**, **MapLibre**, and **Supabase**. This project demonstrates production-ready Android architecture with clean separation of concerns, reactive state management, offline-first data sync, and comprehensive dependency injection.
 
 ## 🏗️ Architecture
 
 This app follows **Clean Architecture** principles with **MVVM** pattern:
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Presentation Layer                    │
-│  (MapScreen, MapViewModel, MapUiState)                  │
-│  • Jetpack Compose UI                                   │
-│  • StateFlow for reactive updates                       │
-│  • Hilt ViewModels                                      │
-└──────────────────┬──────────────────────────────────────┘
-                   │
-┌──────────────────▼──────────────────────────────────────┐
-│                    Domain Layer                          │
-│  (Pin, Location, PinStatus, PinRepository)              │
-│  • Pure Kotlin business logic                           │
-│  • No Android dependencies                              │
-│  • Framework-agnostic interfaces                        │
-└──────────────────┬──────────────────────────────────────┘
-                   │
-┌──────────────────▼──────────────────────────────────────┐
-│                     Data Layer                           │
-│  (Room Database, PinRepositoryImpl, DAOs)               │
-│  • Room for local persistence                           │
-│  • Repository pattern                                   │
-│  • Reactive Flow streams                                │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                       Presentation Layer                          │
+│  (MapScreen, MapViewModel, LoginScreen, AuthViewModel)          │
+│  • Jetpack Compose UI                                            │
+│  • StateFlow for reactive updates                                │
+│  • Hilt ViewModels                                               │
+└─────────────────────────────┬────────────────────────────────────┘
+                              │
+┌─────────────────────────────▼────────────────────────────────────┐
+│                        Domain Layer                               │
+│  (Pin, User, PinRepository, AuthRepository)                      │
+│  • Pure Kotlin business logic                                    │
+│  • No Android dependencies                                       │
+│  • Framework-agnostic interfaces                                 │
+└─────────────────────────────┬────────────────────────────────────┘
+                              │
+┌─────────────────────────────▼────────────────────────────────────┐
+│                         Data Layer                                │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌────────────────┐ │
+│  │  Local (Room)    │←─┤   SyncManager    │─→│ Remote (Supabase)│
+│  │  • PinDao        │  │  • Queue ops     │  │ • Auth          ││
+│  │  • SyncQueueDao  │  │  • Upload/Download│  │ • Postgrest     ││
+│  │  • Instant reads │  │  • Conflict res. │  │ • Realtime      ││
+│  └──────────────────┘  └──────────────────┘  └────────────────┘ │
+│                              ↓                                    │
+│                      ┌───────────────┐                            │
+│                      │ NetworkMonitor │                           │
+│                      └───────────────┘                            │
+└──────────────────────────────────────────────────────────────────┘
+
+Offline-First: Write to Room (instant UI) → Queue for sync → Upload when online
 ```
 
 ### Key Technologies
 
 - **UI**: Jetpack Compose + Material 3
-- **Architecture**: MVVM + Clean Architecture
+- **Architecture**: MVVM + Clean Architecture + Offline-First Sync
 - **DI**: Hilt (Dagger)
-- **Database**: Room
+- **Database**: Room (local) + Supabase PostgreSQL (remote)
+- **Authentication**: Supabase Auth (email/password)
+- **Sync**: WorkManager + Custom SyncManager
 - **Async**: Kotlin Coroutines + Flow
 - **Maps**: MapLibre (no API key required for demo tiles)
 - **Location**: Google Play Services Location
+- **Networking**: Ktor Client (for Supabase)
 
 ## ✨ Features
 
@@ -51,7 +62,7 @@ This app follows **Clean Architecture** principles with **MVVM** pattern:
   - Long-press to open dialog and create pins with chosen status
   - Tap existing pins to edit status or delete
   - Interactive dialog with visual status picker (green/yellow/red)
-  - Pins persist in local Room database
+  - Pins tagged with creator ID for accountability
 - 🎨 **Color-Coded Status**:
   - 🟢 Green: Firearms allowed
   - 🟡 Yellow: Status uncertain
@@ -60,7 +71,20 @@ This app follows **Clean Architecture** principles with **MVVM** pattern:
   - Auto-center on user's location
   - Permission handling
   - Re-center FAB button
-- 💾 **Offline-First**: All data stored locally with Room
+- 🔐 **User Authentication**:
+  - Email/password sign-up and login
+  - Secure session management with Supabase
+  - Persistent auth across app restarts
+- ☁️ **Cloud Synchronization**:
+  - **Offline-first**: Works completely offline with local Room database
+  - **Auto-sync**: Changes automatically sync to Supabase when online
+  - **Conflict resolution**: Last-write-wins strategy with timestamps
+  - **Background sync**: WorkManager handles periodic synchronization
+  - **Real-time ready**: Infrastructure for live multi-device updates
+- 💾 **Dual-Database Architecture**:
+  - Local Room database for instant access
+  - Remote Supabase PostgreSQL for cloud storage
+  - Queue-based sync with automatic retry
 - ⚡ **Reactive UI**: Real-time updates via Kotlin Flow
 
 ### Architecture Features
@@ -68,8 +92,13 @@ This app follows **Clean Architecture** principles with **MVVM** pattern:
 - ✅ Clean Architecture with domain/data/presentation layers
 - ✅ MVVM pattern with reactive StateFlow
 - ✅ Repository pattern for data abstraction
-- ✅ Hilt dependency injection
-- ✅ Room database with type-safe DAOs
+- ✅ **Offline-first sync architecture** with queue-based operations
+- ✅ **Dual-database system**: Room (local) + Supabase (remote)
+- ✅ **Conflict resolution**: Last-write-wins with timestamps
+- ✅ **Network monitoring**: Reactive connectivity tracking
+- ✅ Hilt dependency injection with WorkManager integration
+- ✅ Room database with type-safe DAOs and migrations
+- ✅ Supabase integration (Auth, Postgrest, Realtime, Storage)
 - ✅ Proper error handling and loading states
 - ✅ Comprehensive testing (81 unit tests, 100% pass rate)
 - ✅ Code quality tools (Detekt + KtLint)
@@ -91,14 +120,27 @@ This app follows **Clean Architecture** principles with **MVVM** pattern:
    cd CarryZoneMap_minimal_maplibre
    ```
 
-2. **Configure MapTiler API Key** (optional - demo tiles work without it)
+2. **Configure API Keys**
 
    Create or edit `local.properties`:
    ```properties
-   MAPTILER_API_KEY=your_api_key_here
+   # MapTiler (optional - demo tiles work without it)
+   MAPTILER_API_KEY=your_maptiler_key_here
+
+   # Supabase (required for cloud sync)
+   SUPABASE_URL=https://your-project.supabase.co
+   SUPABASE_ANON_KEY=your_supabase_anon_key_here
    ```
 
-   Get a free API key at [MapTiler](https://www.maptiler.com/) or use the demo tiles (already configured).
+   **MapTiler**: Get a free API key at [MapTiler](https://www.maptiler.com/) or use demo tiles.
+
+   **Supabase Setup** (required for authentication and sync):
+   1. Create a free account at [Supabase](https://supabase.com)
+   2. Create a new project
+   3. Go to **Settings → API** to find your URL and anon key
+   4. Go to **SQL Editor** and run the migration from `supabase/migrations/001_initial_schema.sql`
+   5. Go to **Authentication → Providers → Email** and disable "Confirm email" for development
+   6. See [SUPABASE_PROGRESS.md](./SUPABASE_PROGRESS.md) for detailed setup instructions
 
 3. **Install Java 21** (if not already installed)
    ```bash
@@ -120,12 +162,14 @@ This app follows **Clean Architecture** principles with **MVVM** pattern:
 
 ### First Run
 
-1. Grant location permission when prompted
-2. Map will center on your current location
-3. Long-press anywhere to open the pin creation dialog
-4. Select a status (Allowed/Uncertain/No Guns) and tap "Create"
-5. Tap any existing pin to edit its status or delete it
-6. Use the 📍 FAB button to re-center on your location
+1. **Sign up/Login**: Create an account or sign in with email/password
+2. **Grant location permission** when prompted
+3. **Map centers** on your current location
+4. **Create pins**: Long-press anywhere to open the pin creation dialog
+5. **Select status**: Choose Allowed/Uncertain/No Guns and tap "Create"
+6. **Edit pins**: Tap any existing pin to edit its status or delete it
+7. **Re-center**: Use the 📍 FAB button to return to your location
+8. **Offline mode**: Works completely offline - changes sync automatically when online
 
 ## 📂 Project Structure
 
@@ -135,47 +179,73 @@ app/src/main/java/com/carryzonemap/app/
 ├── domain/                          # Business Logic (Pure Kotlin)
 │   ├── model/                       # Domain models
 │   │   ├── Pin.kt                   # Core pin entity
+│   │   ├── User.kt                  # User model
 │   │   ├── Location.kt              # Lat/long value object
 │   │   ├── PinStatus.kt             # Status enum with business rules
 │   │   └── PinMetadata.kt           # Extensible metadata
 │   ├── mapper/
 │   │   └── PinMapper.kt             # Domain ↔ MapLibre conversions
 │   └── repository/
-│       └── PinRepository.kt         # Repository interface
+│       ├── PinRepository.kt         # Pin repository interface
+│       └── AuthRepository.kt        # Auth repository interface
 │
 ├── data/                            # Data Layer
 │   ├── local/
 │   │   ├── entity/
-│   │   │   └── PinEntity.kt         # Room database table
+│   │   │   ├── PinEntity.kt         # Room database table
+│   │   │   └── SyncQueueEntity.kt   # Sync queue table
 │   │   ├── dao/
-│   │   │   └── PinDao.kt            # Database operations
+│   │   │   ├── PinDao.kt            # Pin database operations
+│   │   │   └── SyncQueueDao.kt      # Sync queue operations
 │   │   └── database/
 │   │       └── CarryZoneDatabase.kt # Room DB configuration
+│   ├── remote/
+│   │   ├── dto/
+│   │   │   └── SupabasePinDto.kt    # Supabase data transfer object
+│   │   ├── mapper/
+│   │   │   └── SupabaseMapper.kt    # DTO ↔ Domain conversions
+│   │   └── datasource/
+│   │       ├── RemotePinDataSource.kt    # Remote data source interface
+│   │       └── SupabasePinDataSource.kt  # Supabase implementation
+│   ├── network/
+│   │   └── NetworkMonitor.kt        # Network connectivity monitoring
+│   ├── sync/
+│   │   ├── SyncManager.kt           # Sync manager interface
+│   │   ├── SyncManagerImpl.kt       # Offline-first sync implementation
+│   │   ├── SyncWorker.kt            # Background sync worker
+│   │   ├── SyncOperation.kt         # Sync operation types (Create/Update/Delete)
+│   │   └── SyncStatus.kt            # Sync status states
 │   ├── mapper/
 │   │   └── EntityMapper.kt          # Entity ↔ Domain conversions
 │   └── repository/
-│       └── PinRepositoryImpl.kt     # Repository implementation
+│       ├── PinRepositoryImpl.kt     # Pin repository with sync
+│       └── SupabaseAuthRepository.kt # Auth repository implementation
 │
 ├── ui/                              # Presentation Layer
-│   ├── MapScreen.kt                 # Main Compose UI
+│   ├── MapScreen.kt                 # Main map Compose UI
+│   ├── auth/
+│   │   ├── LoginScreen.kt           # Login/signup UI
+│   │   └── AuthViewModel.kt         # Auth state management
 │   ├── components/
 │   │   └── PinDialog.kt             # Pin creation/editing dialog
 │   ├── state/
 │   │   ├── MapUiState.kt            # Immutable UI state
 │   │   └── PinDialogState.kt        # Dialog state management
 │   └── viewmodel/
-│       └── MapViewModel.kt          # State management
+│       └── MapViewModel.kt          # Map state management
 │
 ├── di/                              # Dependency Injection
-│   ├── DatabaseModule.kt            # Room DB providers
-│   ├── RepositoryModule.kt          # Repository bindings
-│   └── LocationModule.kt            # Location service providers
+│   ├── DatabaseModule.kt            # Room DB providers & migrations
+│   ├── RepositoryModule.kt          # Repository & data source bindings
+│   ├── LocationModule.kt            # Location service providers
+│   ├── SupabaseModule.kt            # Supabase client providers
+│   └── SyncModule.kt                # Sync manager bindings
 │
 ├── map/                             # Map Rendering (Legacy)
 │   └── FeatureLayerManager.kt       # MapLibre layer management
 │
-├── MainActivity.kt                  # Entry point
-└── CarryZoneApplication.kt          # Hilt application class
+├── MainActivity.kt                  # Entry point with auth flow
+└── CarryZoneApplication.kt          # Hilt application with WorkManager
 ```
 
 ## 🧪 Testing
@@ -400,23 +470,25 @@ offline-first sync logic."
   - [ ] Community moderation
   - [ ] Comments and reports
 
-### Phase 5: Cloud Integration
+### Phase 5: Cloud Integration ✅ (Mostly Complete)
 
-- [ ] **Backend Setup**
-  - [ ] Choose backend (Firestore or Supabase)
-  - [ ] Set up authentication
-  - [ ] Configure database rules
+- [x] **Backend Setup**
+  - [x] Chose Supabase as backend
+  - [x] Set up email/password authentication
+  - [x] Configure database schema with RLS policies
 
-- [ ] **Offline-First Sync**
-  - [ ] Remote data source implementation
-  - [ ] Conflict resolution strategy
-  - [ ] Background sync worker
-  - [ ] Network state handling
+- [x] **Offline-First Sync**
+  - [x] Remote data source implementation (SupabasePinDataSource)
+  - [x] Conflict resolution strategy (last-write-wins)
+  - [x] Background sync worker (SyncWorker with WorkManager)
+  - [x] Network state handling (NetworkMonitor)
+  - [x] Queue-based offline operations (SyncQueue)
 
-- [ ] **Real-time Updates**
-  - [ ] WebSocket/Firestore listeners
-  - [ ] Live pin updates
-  - [ ] Push notifications for nearby changes
+- [ ] **Real-time Updates** (Infrastructure ready, needs activation)
+  - [x] Supabase Realtime channel subscription implemented
+  - [ ] Enable real-time in SyncManager
+  - [ ] Test multi-device live updates
+  - [ ] Push notifications for nearby changes (future)
 
 ### Phase 6: Polish & Production
 
@@ -464,8 +536,11 @@ offline-first sync logic."
 
 ## 📚 Documentation
 
-- **[REFACTORING_PLAN.md](./REFACTORING_PLAN.md)**: Detailed refactoring plan with phase breakdown
-- **[REFACTORING_SUMMARY.md](./REFACTORING_SUMMARY.md)**: Comprehensive summary of changes and benefits
+- **[SUPABASE_INTEGRATION_PLAN.md](./SUPABASE_INTEGRATION_PLAN.md)**: Complete plan for Supabase cloud sync (Phases 1-4 complete)
+- **[SUPABASE_PROGRESS.md](./SUPABASE_PROGRESS.md)**: Implementation progress and setup guide
+- **[REFACTORING_PLAN.md](./REFACTORING_PLAN.md)**: Original refactoring plan with phase breakdown
+- **[REFACTORING_SUMMARY.md](./REFACTORING_SUMMARY.md)**: Comprehensive summary of architectural changes
+- **[CLAUDE.md](./CLAUDE.md)**: Guidance for Claude Code when working with this codebase
 - **Architecture Guide**: See the Architecture section above
 - **API Documentation**: KDoc comments throughout the codebase
 
@@ -508,6 +583,6 @@ Contributions are welcome! Please follow the existing architecture patterns:
 
 ---
 
-**Built with ❤️ using modern Android architecture**
+**Built with ❤️ using modern Android architecture + cloud sync**
 
-*Last Updated: 2025-10-10*
+*Last Updated: 2025-10-11*
