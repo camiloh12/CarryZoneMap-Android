@@ -6,6 +6,7 @@
 - ⬜ Not Started
 - 🔄 Blocked/Needs Review
 - ⚠️ Needs Decision
+- ⏭️ Skipped/Deferred (Not needed for initial version)
 
 ---
 
@@ -805,6 +806,7 @@ private suspend fun resolveConflict(local: Pin, remote: Pin): Pin {
 ### 7.1 Photo Upload to Supabase Storage ⬜
 **Priority:** Medium
 **Estimated Time:** 4 hours
+**Status:** ⏭️ **NOT NEEDED FOR INITIAL VERSION - Skipped for now**
 
 **Tasks:**
 - [ ] Implement photo upload using Supabase Storage
@@ -816,6 +818,8 @@ private suspend fun resolveConflict(local: Pin, remote: Pin): Pin {
 
 **Files to create:**
 - `app/src/main/java/com/carryzonemap/app/data/remote/storage/PhotoStorageManager.kt`
+
+**Note:** This feature is deferred to a future release. The database schema supports `photo_uri` field, but photo upload functionality will be implemented later.
 
 ---
 
@@ -839,6 +843,7 @@ private suspend fun resolveConflict(local: Pin, remote: Pin): Pin {
 ### 7.3 Real-Time Collaboration Features ⬜
 **Priority:** Low
 **Estimated Time:** 3 hours
+**Status:** ⏭️ **NOT NEEDED FOR INITIAL VERSION - Skipped for now**
 
 **Tasks:**
 - [ ] Show notification when nearby pins are updated
@@ -849,6 +854,8 @@ private suspend fun resolveConflict(local: Pin, remote: Pin): Pin {
 **Files to create:**
 - `app/src/main/java/com/carryzonemap/app/ui/components/ActivityFeed.kt`
 - `app/src/main/java/com/carryzonemap/app/ui/state/ActivityFeedState.kt`
+
+**Note:** This feature is deferred to a future release. Basic real-time sync infrastructure is in place (Realtime subscriptions), but these enhanced UI features will be implemented later.
 
 ---
 
@@ -975,9 +982,11 @@ if (BuildConfig.ENABLE_CLOUD_SYNC && networkMonitor.isOnline.value) {
 | Phase 4: Hybrid Repository | 10.5 hours |
 | Phase 5: Conflict Resolution | 5 hours |
 | Phase 6: Testing | 11 hours |
-| Phase 7: Enhanced Features | 10 hours |
+| Phase 7: Enhanced Features | 3 hours (7.2 only; 7.1 & 7.3 deferred) |
 | Phase 8: Production Readiness | 10 hours |
-| **Total** | **63.5 hours** (~8-10 days) |
+| **Total** | **56.5 hours** (~7-9 days) |
+
+**Note:** Phases 7.1 (Photo Upload) and 7.3 (Real-Time Collaboration Features) are deferred to future releases, reducing Phase 7 from 10 hours to 3 hours.
 
 ---
 

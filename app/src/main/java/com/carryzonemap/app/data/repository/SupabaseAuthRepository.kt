@@ -1,15 +1,19 @@
 package com.carryzonemap.app.data.repository
 
-import android.util.Log
 import com.carryzonemap.app.domain.model.User
 import com.carryzonemap.app.domain.repository.AuthRepository
 import com.carryzonemap.app.domain.repository.AuthState
 import io.github.jan.supabase.auth.Auth
-import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.auth.status.SessionStatus
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,9 +30,9 @@ class SupabaseAuthRepository
     constructor(
         private val auth: Auth,
     ) : AuthRepository {
-        companion object {
-            private const val TAG = "SupabaseAuthRepository"
-        }
+
+        // Scope for managing coroutines in this repository
+        private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
         private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
         override val authState: Flow<AuthState> = _authState.asStateFlow()
@@ -37,8 +41,40 @@ class SupabaseAuthRepository
             get() = auth.currentUserOrNull()?.id
 
         init {
-            // Initialize auth state based on current session
-            updateAuthState()
+            Timber.d("Initializing SupabaseAuthRepository")
+            // Observe session status changes for automatic state updates
+            scope.launch {
+                auth.sessionStatus.collect { status ->
+                    Timber.d("Session status changed: $status")
+                    when (status) {
+                        is SessionStatus.Authenticated -> {
+                            val currentUser = auth.currentUserOrNull()
+                            if (currentUser != null) {
+                                val user =
+                                    User(
+                                        id = currentUser.id,
+                                        email = currentUser.email,
+                                    )
+                                _authState.value = AuthState.Authenticated(user)
+                                Timber.d("User authenticated from session: ${user.email}")
+                            }
+                        }
+                        is SessionStatus.Initializing -> {
+                            Timber.d("Initializing session...")
+                            _authState.value = AuthState.Loading
+                        }
+                        is SessionStatus.RefreshFailure -> {
+                            Timber.w("Session refresh failed, keeping current state")
+                            // Don't change state on refresh failure - keep user logged in
+                            // Session will retry on next network availability
+                        }
+                        is SessionStatus.NotAuthenticated -> {
+                            Timber.d("User not authenticated")
+                            _authState.value = AuthState.Unauthenticated
+                        }
+                    }
+                }
+            }
         }
 
         override suspend fun signUpWithEmail(
@@ -46,6 +82,7 @@ class SupabaseAuthRepository
             password: String,
         ): Result<User> {
             return try {
+                Timber.d("Attempting sign up with email: $email")
                 auth.signUpWith(Email) {
                     this.email = email
                     this.password = password
@@ -58,16 +95,16 @@ class SupabaseAuthRepository
                             id = currentUser.id,
                             email = currentUser.email,
                         )
-                    _authState.value = AuthState.Authenticated(user)
-                    Log.d(TAG, "Sign up successful: ${user.email}")
+                    // Note: authState will be updated by session status collector
+                    Timber.d("Sign up successful: ${user.email}, session will be persisted")
                     Result.success(user)
                 } else {
                     val error = Exception("Sign up succeeded but user is null")
-                    Log.e(TAG, "Sign up error", error)
+                    Timber.e(error, "Sign up error")
                     Result.failure(error)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Sign up failed", e)
+                Timber.e(e, "Sign up failed: ${e.message}")
                 Result.failure(e)
             }
         }
@@ -77,6 +114,7 @@ class SupabaseAuthRepository
             password: String,
         ): Result<User> {
             return try {
+                Timber.d("Attempting sign in with email: $email")
                 auth.signInWith(Email) {
                     this.email = email
                     this.password = password
@@ -89,28 +127,29 @@ class SupabaseAuthRepository
                             id = currentUser.id,
                             email = currentUser.email,
                         )
-                    _authState.value = AuthState.Authenticated(user)
-                    Log.d(TAG, "Sign in successful: ${user.email}")
+                    // Note: authState will be updated by session status collector
+                    Timber.d("Sign in successful: ${user.email}, session will be persisted")
                     Result.success(user)
                 } else {
                     val error = Exception("Sign in succeeded but user is null")
-                    Log.e(TAG, "Sign in error", error)
+                    Timber.e(error, "Sign in error")
                     Result.failure(error)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Sign in failed", e)
+                Timber.e(e, "Sign in failed: ${e.message}")
                 Result.failure(e)
             }
         }
 
         override suspend fun signOut(): Result<Unit> {
             return try {
+                Timber.d("Signing out and clearing session...")
                 auth.signOut()
-                _authState.value = AuthState.Unauthenticated
-                Log.d(TAG, "Sign out successful")
+                // Note: authState will be updated by session status collector
+                Timber.d("Sign out successful, session cleared")
                 Result.success(Unit)
             } catch (e: Exception) {
-                Log.e(TAG, "Sign out failed", e)
+                Timber.e(e, "Sign out failed: ${e.message}")
                 Result.failure(e)
             }
         }
@@ -125,21 +164,4 @@ class SupabaseAuthRepository
             }
         }
 
-        /**
-         * Updates the auth state based on current session.
-         */
-        private fun updateAuthState() {
-            val currentUser = auth.currentUserOrNull()
-            _authState.value =
-                if (currentUser != null) {
-                    AuthState.Authenticated(
-                        User(
-                            id = currentUser.id,
-                            email = currentUser.email,
-                        ),
-                    )
-                } else {
-                    AuthState.Unauthenticated
-                }
-        }
     }

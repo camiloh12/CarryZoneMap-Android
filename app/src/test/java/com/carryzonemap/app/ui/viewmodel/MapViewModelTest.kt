@@ -3,16 +3,21 @@ package com.carryzonemap.app.ui.viewmodel
 import android.content.Context
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.test.core.app.ApplicationProvider
+import com.carryzonemap.app.data.sync.SyncManager
+import com.carryzonemap.app.data.sync.SyncStatus
 import com.carryzonemap.app.domain.model.Location
 import com.carryzonemap.app.domain.model.Pin
 import com.carryzonemap.app.domain.model.PinStatus
+import com.carryzonemap.app.domain.repository.AuthRepository
 import com.carryzonemap.app.domain.repository.PinRepository
+import com.carryzonemap.app.ui.state.PinDialogState
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.tasks.Tasks
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -43,6 +48,8 @@ class MapViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
 
     private lateinit var fakeRepository: FakeRepository
+    private lateinit var fakeAuthRepository: FakeAuthRepository
+    private lateinit var fakeSyncManager: FakeSyncManager
     private lateinit var mockLocationClient: FusedLocationProviderClient
     private lateinit var context: Context
     private lateinit var viewModel: MapViewModel
@@ -58,6 +65,8 @@ class MapViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         fakeRepository = FakeRepository()
+        fakeAuthRepository = FakeAuthRepository()
+        fakeSyncManager = FakeSyncManager()
         mockLocationClient = mock(FusedLocationProviderClient::class.java)
         context = ApplicationProvider.getApplicationContext()
     }
@@ -70,7 +79,7 @@ class MapViewModelTest {
     @Test
     fun `initial state is correct`() =
         runTest {
-            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
             val state = viewModel.uiState.value
@@ -78,6 +87,7 @@ class MapViewModelTest {
             assertNull(state.currentLocation)
             assertFalse(state.isLoading)
             assertNull(state.error)
+            assertTrue(state.pinDialogState is PinDialogState.Hidden)
         }
 
     @Test
@@ -85,7 +95,7 @@ class MapViewModelTest {
         runTest {
             fakeRepository.emitPins(listOf(testPin))
 
-            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
             val state = viewModel.uiState.value
@@ -94,29 +104,89 @@ class MapViewModelTest {
         }
 
     @Test
-    fun `addPin adds pin to repository`() =
+    fun `showCreatePinDialog opens dialog with correct location`() =
         runTest {
-            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            viewModel.addPin(-74.0060, 40.7128)
+            viewModel.showCreatePinDialog(-74.0060, 40.7128)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val dialogState = viewModel.uiState.value.pinDialogState
+            assertTrue(dialogState is PinDialogState.Creating)
+            val creatingState = dialogState as PinDialogState.Creating
+            assertEquals(40.7128, creatingState.location.latitude, 0.0001)
+            assertEquals(-74.0060, creatingState.location.longitude, 0.0001)
+            assertEquals(PinStatus.ALLOWED, creatingState.selectedStatus) // Default status
+        }
+
+    @Test
+    fun `onDialogStatusSelected updates selected status in creating dialog`() =
+        runTest {
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.showCreatePinDialog(-74.0060, 40.7128)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.onDialogStatusSelected(PinStatus.UNCERTAIN)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val dialogState = viewModel.uiState.value.pinDialogState
+            assertTrue(dialogState is PinDialogState.Creating)
+            assertEquals(PinStatus.UNCERTAIN, (dialogState as PinDialogState.Creating).selectedStatus)
+        }
+
+    @Test
+    fun `confirmPinDialog creates pin with selected status`() =
+        runTest {
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.showCreatePinDialog(-74.0060, 40.7128)
+            viewModel.onDialogStatusSelected(PinStatus.NO_GUN)
+            viewModel.confirmPinDialog()
             testDispatcher.scheduler.advanceUntilIdle()
 
             assertEquals(1, fakeRepository.pins.size)
             val addedPin = fakeRepository.pins.values.first()
             assertEquals(40.7128, addedPin.location.latitude, 0.0001)
             assertEquals(-74.0060, addedPin.location.longitude, 0.0001)
+            assertEquals(PinStatus.NO_GUN, addedPin.status)
+
+            // Dialog should be hidden after confirmation
+            assertTrue(viewModel.uiState.value.pinDialogState is PinDialogState.Hidden)
         }
 
     @Test
-    fun `cyclePinStatus updates pin status`() =
+    fun `showEditPinDialog opens dialog with existing pin data`() =
         runTest {
             fakeRepository.emitPins(listOf(testPin))
 
-            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            viewModel.cyclePinStatus(testPin.id)
+            viewModel.showEditPinDialog(testPin.id)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val dialogState = viewModel.uiState.value.pinDialogState
+            assertTrue(dialogState is PinDialogState.Editing)
+            val editingState = dialogState as PinDialogState.Editing
+            assertEquals(testPin.id, editingState.pin.id)
+            assertEquals(testPin.status, editingState.selectedStatus)
+        }
+
+    @Test
+    fun `confirmPinDialog updates pin with new status`() =
+        runTest {
+            fakeRepository.emitPins(listOf(testPin))
+
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.showEditPinDialog(testPin.id)
+            viewModel.onDialogStatusSelected(PinStatus.UNCERTAIN)
+            viewModel.confirmPinDialog()
             testDispatcher.scheduler.advanceUntilIdle()
 
             val updatedPin = fakeRepository.pins[testPin.id]
@@ -124,44 +194,44 @@ class MapViewModelTest {
         }
 
     @Test
-    fun `cyclePinStatus sets error when pin not found`() =
-        runTest {
-            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
-            testDispatcher.scheduler.advanceUntilIdle()
-
-            viewModel.cyclePinStatus("nonexistent")
-            testDispatcher.scheduler.advanceUntilIdle()
-
-            assertNotNull(viewModel.uiState.value.error)
-            assertTrue(viewModel.uiState.value.error!!.contains("Pin not found"))
-        }
-
-    @Test
-    fun `deletePin removes pin from repository`() =
+    fun `deletePinFromDialog removes pin`() =
         runTest {
             fakeRepository.emitPins(listOf(testPin))
 
-            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            viewModel.deletePin(testPin)
+            viewModel.showEditPinDialog(testPin.id)
+            viewModel.deletePinFromDialog()
             testDispatcher.scheduler.advanceUntilIdle()
 
             assertEquals(0, fakeRepository.pins.size)
         }
 
     @Test
-    fun `clearError clears error state`() =
+    fun `dismissPinDialog closes dialog`() =
         runTest {
-            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            // Trigger an error
-            viewModel.cyclePinStatus("nonexistent")
+            viewModel.showCreatePinDialog(-74.0060, 40.7128)
+            testDispatcher.scheduler.advanceUntilIdle()
+            assertTrue(viewModel.uiState.value.pinDialogState is PinDialogState.Creating)
+
+            viewModel.dismissPinDialog()
+            testDispatcher.scheduler.advanceUntilIdle()
+            assertTrue(viewModel.uiState.value.pinDialogState is PinDialogState.Hidden)
+        }
+
+    @Test
+    fun `clearError clears error state`() =
+        runTest {
+            fakeRepository.shouldThrowError = true
+
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
             assertNotNull(viewModel.uiState.value.error)
 
-            // Clear the error
             viewModel.clearError()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -176,10 +246,9 @@ class MapViewModelTest {
             `when`(mockLocation.longitude).thenReturn(-74.0060)
             `when`(mockLocationClient.lastLocation).thenReturn(Tasks.forResult(mockLocation))
 
-            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            // Grant location permission for this test
             viewModel.onLocationPermissionResult(true)
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -195,7 +264,7 @@ class MapViewModelTest {
     @Test
     fun `onLocationPermissionResult updates permission state`() =
         runTest {
-            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
             assertFalse(viewModel.uiState.value.hasLocationPermission)
@@ -211,11 +280,23 @@ class MapViewModelTest {
         runTest {
             fakeRepository.shouldThrowError = true
 
-            viewModel = MapViewModel(fakeRepository, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
             assertNotNull(viewModel.uiState.value.error)
             assertTrue(viewModel.uiState.value.error!!.contains("Failed to load pins"))
+        }
+
+    @Test
+    fun `signOut calls auth repository signOut`() =
+        runTest {
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.signOut()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(fakeAuthRepository.signOutCalled)
         }
 
     /**
@@ -273,5 +354,57 @@ class MapViewModelTest {
         }
 
         override suspend fun getPinCount(): Int = pins.size
+    }
+
+    /**
+     * Fake auth repository for testing.
+     */
+    private class FakeAuthRepository : AuthRepository {
+        var signOutCalled = false
+        private var currentUser: String? = "test-user-id"
+
+        override val authState: Flow<com.carryzonemap.app.domain.repository.AuthState> = emptyFlow()
+
+        override val currentUserId: String?
+            get() = currentUser
+
+        override suspend fun signUpWithEmail(email: String, password: String): Result<com.carryzonemap.app.domain.model.User> {
+            return Result.success(com.carryzonemap.app.domain.model.User(id = "test-user-id", email = email))
+        }
+
+        override suspend fun signInWithEmail(email: String, password: String): Result<com.carryzonemap.app.domain.model.User> {
+            return Result.success(com.carryzonemap.app.domain.model.User(id = "test-user-id", email = email))
+        }
+
+        override suspend fun signOut(): Result<Unit> {
+            signOutCalled = true
+            currentUser = null
+            return Result.success(Unit)
+        }
+
+        override suspend fun getCurrentUser(): com.carryzonemap.app.domain.model.User? {
+            return currentUser?.let { com.carryzonemap.app.domain.model.User(id = it, email = "test@example.com") }
+        }
+    }
+
+    /**
+     * Fake sync manager for testing.
+     */
+    private class FakeSyncManager : SyncManager {
+        override val syncStatus: Flow<SyncStatus> = emptyFlow()
+
+        override suspend fun queuePinForUpload(pin: Pin) {}
+
+        override suspend fun queuePinForUpdate(pin: Pin) {}
+
+        override suspend fun queuePinForDeletion(pinId: String) {}
+
+        override suspend fun syncWithRemote(): Result<Unit> = Result.success(Unit)
+
+        override suspend fun getPendingOperationCount(): Int = 0
+
+        override suspend fun clearQueue() {}
+
+        override fun startRealtimeSubscription(): Flow<String> = emptyFlow()
     }
 }

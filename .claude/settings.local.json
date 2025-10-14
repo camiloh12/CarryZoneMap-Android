@@ -4,7 +4,9 @@
       "Bash(mkdir:*)",
       "Bash(./gradlew:*)",
       "Bash(tree:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "mcp__supabase__list_projects",
+      "mcp__supabase__execute_sql"
     ],
     "deny": [],
     "ask": []

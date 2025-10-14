@@ -3,13 +3,16 @@ package com.carryzonemap.app.data.repository
 import app.cash.turbine.test
 import com.carryzonemap.app.data.local.dao.PinDao
 import com.carryzonemap.app.data.local.entity.PinEntity
+import com.carryzonemap.app.data.sync.SyncManager
 import com.carryzonemap.app.domain.model.Location
 import com.carryzonemap.app.domain.model.Pin
 import com.carryzonemap.app.domain.model.PinStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -17,9 +20,14 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import timber.log.Timber
 
+@RunWith(RobolectricTestRunner::class)
 class PinRepositoryImplTest {
     private lateinit var fakeDao: FakePinDao
+    private lateinit var fakeSyncManager: FakeSyncManager
     private lateinit var repository: PinRepositoryImpl
 
     private val testPin =
@@ -31,8 +39,19 @@ class PinRepositoryImplTest {
 
     @Before
     fun setup() {
+        // Initialize Timber for tests
+        if (Timber.treeCount == 0) {
+            Timber.plant(Timber.DebugTree())
+        }
+
         fakeDao = FakePinDao()
-        repository = PinRepositoryImpl(fakeDao)
+        fakeSyncManager = FakeSyncManager()
+        repository = PinRepositoryImpl(fakeDao, fakeSyncManager)
+    }
+
+    @After
+    fun tearDown() {
+        Timber.uprootAll()
     }
 
     @Test
@@ -237,5 +256,41 @@ class PinRepositoryImplTest {
         private fun emitPins() {
             pinsFlow.update { pins.values.toList().sortedByDescending { it.createdAt } }
         }
+    }
+
+    /**
+     * Fake SyncManager implementation for testing.
+     * Tracks sync operations but doesn't perform actual syncing.
+     */
+    private class FakeSyncManager : SyncManager {
+        val queuedForUpload = mutableListOf<Pin>()
+        val queuedForUpdate = mutableListOf<Pin>()
+        val queuedForDeletion = mutableListOf<String>()
+
+        override val syncStatus: Flow<com.carryzonemap.app.data.sync.SyncStatus> = emptyFlow()
+
+        override suspend fun queuePinForUpload(pin: Pin) {
+            queuedForUpload.add(pin)
+        }
+
+        override suspend fun queuePinForUpdate(pin: Pin) {
+            queuedForUpdate.add(pin)
+        }
+
+        override suspend fun queuePinForDeletion(pinId: String) {
+            queuedForDeletion.add(pinId)
+        }
+
+        override suspend fun syncWithRemote(): Result<Unit> = Result.success(Unit)
+
+        override suspend fun getPendingOperationCount(): Int = 0
+
+        override suspend fun clearQueue() {
+            queuedForUpload.clear()
+            queuedForUpdate.clear()
+            queuedForDeletion.clear()
+        }
+
+        override fun startRealtimeSubscription(): Flow<String> = emptyFlow()
     }
 }

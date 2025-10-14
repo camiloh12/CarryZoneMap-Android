@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.carryzonemap.app.data.sync.SyncManager
 import com.carryzonemap.app.domain.model.Location
 import com.carryzonemap.app.domain.model.Pin
 import com.carryzonemap.app.domain.model.PinMetadata
@@ -36,6 +37,7 @@ import javax.inject.Inject
  *
  * @property pinRepository Repository for pin data operations
  * @property authRepository Repository for authentication operations
+ * @property syncManager Manager for sync operations and real-time subscriptions
  * @property fusedLocationClient Client for accessing device location
  */
 @HiltViewModel
@@ -44,6 +46,7 @@ class MapViewModel
     constructor(
         private val pinRepository: PinRepository,
         private val authRepository: AuthRepository,
+        private val syncManager: SyncManager,
         private val fusedLocationClient: FusedLocationProviderClient,
         @ApplicationContext private val context: Context,
     ) : ViewModel() {
@@ -55,6 +58,7 @@ class MapViewModel
         init {
             observePins()
             checkLocationPermission()
+            startRealtimeSync()
         }
 
         override fun onCleared() {
@@ -86,6 +90,22 @@ class MapViewModel
                                 error = null,
                             )
                         }
+                    }
+            }
+        }
+
+        /**
+         * Starts real-time synchronization with the remote server.
+         * This enables live updates when other users create/update/delete pins.
+         */
+        private fun startRealtimeSync() {
+            viewModelScope.launch {
+                syncManager
+                    .startRealtimeSubscription()
+                    .catch { error ->
+                        android.util.Log.e("MapViewModel", "Real-time sync error", error)
+                    }.collect { message ->
+                        android.util.Log.d("MapViewModel", message)
                     }
             }
         }
@@ -268,6 +288,21 @@ class MapViewModel
          */
         fun clearError() {
             _uiState.update { it.copy(error = null) }
+        }
+
+        /**
+         * Signs out the current user.
+         */
+        fun signOut() {
+            viewModelScope.launch {
+                try {
+                    authRepository.signOut()
+                } catch (e: Exception) {
+                    _uiState.update {
+                        it.copy(error = "Failed to sign out: ${e.message}")
+                    }
+                }
+            }
         }
 
         /**

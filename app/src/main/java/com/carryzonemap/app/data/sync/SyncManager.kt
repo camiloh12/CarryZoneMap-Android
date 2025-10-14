@@ -62,4 +62,14 @@ interface SyncManager {
      * Clear all pending operations (useful for testing or reset).
      */
     suspend fun clearQueue()
+
+    /**
+     * Start subscribing to real-time changes from the remote server.
+     *
+     * This should be called once when the app starts and user is authenticated.
+     * The subscription will automatically merge remote changes into the local database.
+     *
+     * @return Flow that emits when real-time events are received (for logging/monitoring)
+     */
+    fun startRealtimeSubscription(): Flow<String>
 }

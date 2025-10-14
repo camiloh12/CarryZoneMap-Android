@@ -1,13 +1,13 @@
 package com.carryzonemap.app.data.sync
 
 import android.content.Context
-import android.util.Log
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import dagger.hilt.android.qualifiers.ApplicationContext
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -26,7 +26,6 @@ class SyncScheduler
         @ApplicationContext private val context: Context,
     ) {
         companion object {
-            private const val TAG = "SyncScheduler"
             private const val SYNC_INTERVAL_MINUTES = 15L
         }
 
@@ -37,7 +36,7 @@ class SyncScheduler
          * Uses KEEP policy to avoid rescheduling if already scheduled.
          */
         fun schedulePeriodicSync() {
-            Log.d(TAG, "Scheduling periodic sync (every $SYNC_INTERVAL_MINUTES minutes)")
+            Timber.d("Scheduling periodic sync (every $SYNC_INTERVAL_MINUTES minutes)")
 
             val constraints =
                 Constraints
@@ -61,7 +60,7 @@ class SyncScheduler
                     syncWorkRequest,
                 )
 
-            Log.d(TAG, "Periodic sync scheduled successfully")
+            Timber.d("Periodic sync scheduled successfully")
         }
 
         /**
@@ -69,7 +68,7 @@ class SyncScheduler
          * Useful for testing or when user logs out.
          */
         fun cancelPeriodicSync() {
-            Log.d(TAG, "Cancelling periodic sync")
+            Timber.d("Cancelling periodic sync")
             WorkManager
                 .getInstance(context)
                 .cancelUniqueWork(SyncWorker.WORK_NAME)

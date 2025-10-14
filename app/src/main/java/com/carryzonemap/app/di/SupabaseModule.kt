@@ -1,9 +1,11 @@
 package com.carryzonemap.app.di
 
+import android.content.Context
 import com.carryzonemap.app.BuildConfig
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
@@ -31,17 +33,26 @@ object SupabaseModule {
      *
      * The client is configured with the URL and anon key from BuildConfig.
      * These values are loaded from local.properties at build time.
+     *
+     * Auth is configured with automatic session persistence using SharedPreferences.
      */
     @Provides
     @Singleton
-    fun provideSupabaseClient(): SupabaseClient {
+    fun provideSupabaseClient(
+        @ApplicationContext context: Context,
+    ): SupabaseClient {
         return createSupabaseClient(
             supabaseUrl = BuildConfig.SUPABASE_URL,
             supabaseKey = BuildConfig.SUPABASE_ANON_KEY,
         ) {
             install(Postgrest)
             install(Realtime)
-            install(Auth)
+            install(Auth) {
+                // Enable automatic session persistence
+                // Sessions are saved to SharedPreferences and loaded on app restart
+                alwaysAutoRefresh = true
+                autoLoadFromStorage = true
+            }
             install(Storage)
         }
     }

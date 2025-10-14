@@ -1,10 +1,10 @@
 package com.carryzonemap.app.map
 
 import android.content.Context
-import android.util.Log
 import org.json.JSONArray
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.Point
+import timber.log.Timber
 import java.util.UUID
 
 class FeatureDataStore(context: Context, private val onDataChanged: (List<Feature>) -> Unit) {
@@ -20,7 +20,6 @@ class FeatureDataStore(context: Context, private val onDataChanged: (List<Featur
         const val COLOR_STATE_RED = 2
 
         private const val PREFS_KEY_FEATURES = "features_json"
-        private const val TAG = "FeatureDataStore"
     }
 
     init {
@@ -80,7 +79,7 @@ class FeatureDataStore(context: Context, private val onDataChanged: (List<Featur
             }
             prefs.edit().putString(PREFS_KEY_FEATURES, jsonArray.toString()).apply()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save features to SharedPreferences", e)
+            Timber.e(e, "Failed to save features to SharedPreferences")
         }
     }
 
@@ -99,11 +98,11 @@ class FeatureDataStore(context: Context, private val onDataChanged: (List<Featur
                     feature.addNumberProperty(PROPERTY_COLOR_STATE, persistedFeature.state)
                     featuresList.add(feature)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to load a single feature from JSON", e)
+                    Timber.e(e, "Failed to load a single feature from JSON")
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse features JSON array from SharedPreferences", e)
+            Timber.e(e, "Failed to parse features JSON array from SharedPreferences")
         }
     }
 }
