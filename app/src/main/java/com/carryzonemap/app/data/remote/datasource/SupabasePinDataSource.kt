@@ -1,6 +1,5 @@
 package com.carryzonemap.app.data.remote.datasource
 
-import android.util.Log
 import com.carryzonemap.app.data.remote.dto.SupabasePinDto
 import com.carryzonemap.app.data.remote.mapper.SupabaseMapper.toDomain
 import com.carryzonemap.app.data.remote.mapper.SupabaseMapper.toDomainModels
@@ -11,6 +10,7 @@ import io.github.jan.supabase.realtime.Realtime
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -30,23 +30,22 @@ class SupabasePinDataSource
         private val realtime: Realtime,
     ) : RemotePinDataSource {
         companion object {
-            private const val TAG = "SupabasePinDataSource"
             private const val TABLE_NAME = "pins"
         }
 
         override suspend fun getAllPins(): Result<List<Pin>> {
             return try {
-                Log.d(TAG, "Fetching all pins from Supabase...")
+                Timber.d("Fetching all pins from Supabase...")
                 val response =
                     postgrest
                         .from(TABLE_NAME)
                         .select()
                         .decodeList<SupabasePinDto>()
 
-                Log.d(TAG, "Fetched ${response.size} pins from Supabase")
+                Timber.d("Fetched ${response.size} pins from Supabase")
                 Result.success(response.toDomainModels())
             } catch (e: Exception) {
-                Log.e(TAG, "Error fetching all pins from Supabase: ${e.message}", e)
+                Timber.e(e, "Error fetching all pins from Supabase: ${e.message}")
                 Result.failure(e)
             }
         }
@@ -64,14 +63,14 @@ class SupabasePinDataSource
 
                 Result.success(response?.toDomain())
             } catch (e: Exception) {
-                Log.e(TAG, "Error fetching pin by id: $pinId", e)
+                Timber.e(e, "Error fetching pin by id: $pinId")
                 Result.failure(e)
             }
         }
 
         override suspend fun insertPin(pin: Pin): Result<Pin> {
             return try {
-                Log.d(TAG, "Inserting pin to Supabase: ${pin.id} at (${pin.location.longitude}, ${pin.location.latitude})")
+                Timber.d("Inserting pin to Supabase: ${pin.id} at (${pin.location.longitude}, ${pin.location.latitude})")
                 val dto = pin.toSupabaseDto()
                 val response =
                     postgrest
@@ -80,17 +79,17 @@ class SupabasePinDataSource
                             select()
                         }.decodeSingle<SupabasePinDto>()
 
-                Log.d(TAG, "Successfully inserted pin to Supabase: ${pin.id}")
+                Timber.d("Successfully inserted pin to Supabase: ${pin.id}")
                 Result.success(response.toDomain())
             } catch (e: Exception) {
-                Log.e(TAG, "Error inserting pin ${pin.id} to Supabase: ${e.message}", e)
+                Timber.e(e, "Error inserting pin ${pin.id} to Supabase: ${e.message}")
                 Result.failure(e)
             }
         }
 
         override suspend fun updatePin(pin: Pin): Result<Pin> {
             return try {
-                Log.d(TAG, "Updating pin in Supabase: ${pin.id}")
+                Timber.d("Updating pin in Supabase: ${pin.id}")
                 val dto = pin.toSupabaseDto()
                 val response =
                     postgrest
@@ -102,17 +101,17 @@ class SupabasePinDataSource
                             select()
                         }.decodeSingle<SupabasePinDto>()
 
-                Log.d(TAG, "Successfully updated pin in Supabase: ${pin.id}")
+                Timber.d("Successfully updated pin in Supabase: ${pin.id}")
                 Result.success(response.toDomain())
             } catch (e: Exception) {
-                Log.e(TAG, "Error updating pin ${pin.id} in Supabase: ${e.message}", e)
+                Timber.e(e, "Error updating pin ${pin.id} in Supabase: ${e.message}")
                 Result.failure(e)
             }
         }
 
         override suspend fun deletePin(pinId: String): Result<Unit> {
             return try {
-                Log.d(TAG, "Deleting pin from Supabase: $pinId")
+                Timber.d("Deleting pin from Supabase: $pinId")
                 postgrest
                     .from(TABLE_NAME)
                     .delete {
@@ -121,10 +120,10 @@ class SupabasePinDataSource
                         }
                     }
 
-                Log.d(TAG, "Successfully deleted pin from Supabase: $pinId")
+                Timber.d("Successfully deleted pin from Supabase: $pinId")
                 Result.success(Unit)
             } catch (e: Exception) {
-                Log.e(TAG, "Error deleting pin $pinId from Supabase: ${e.message}", e)
+                Timber.e(e, "Error deleting pin $pinId from Supabase: ${e.message}")
                 Result.failure(e)
             }
         }
@@ -150,22 +149,22 @@ class SupabasePinDataSource
 
                 Result.success(response.toDomainModels())
             } catch (e: Exception) {
-                Log.e(TAG, "Error fetching pins in bounding box", e)
+                Timber.e(e, "Error fetching pins in bounding box")
                 Result.failure(e)
             }
         }
 
         override fun subscribeToChanges(): Flow<PinChangeEvent> =
             callbackFlow<PinChangeEvent> {
-                Log.d(TAG, "Realtime subscriptions not yet implemented")
-                Log.d(TAG, "Will use polling-based sync instead")
+                Timber.d("Realtime subscriptions not yet implemented")
+                Timber.d("Will use polling-based sync instead")
 
                 // TODO: Implement realtime subscriptions in Phase 7
                 // For now, return an empty flow
                 // The sync manager will use polling instead
 
                 awaitClose {
-                    Log.d(TAG, "Closing realtime subscription flow")
+                    Timber.d("Closing realtime subscription flow")
                 }
             }
     }

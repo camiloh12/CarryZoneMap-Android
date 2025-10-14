@@ -1,6 +1,5 @@
 package com.carryzonemap.app.data.repository
 
-import android.util.Log
 import com.carryzonemap.app.data.local.dao.PinDao
 import com.carryzonemap.app.data.mapper.EntityMapper.toDomain
 import com.carryzonemap.app.data.mapper.EntityMapper.toDomainModels
@@ -10,6 +9,7 @@ import com.carryzonemap.app.domain.model.Pin
 import com.carryzonemap.app.domain.repository.PinRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,9 +33,6 @@ class PinRepositoryImpl
         private val pinDao: PinDao,
         private val syncManager: SyncManager,
     ) : PinRepository {
-        companion object {
-            private const val TAG = "PinRepository"
-        }
 
         /**
          * Reads from local database for instant UI updates.
@@ -58,22 +55,22 @@ class PinRepositoryImpl
          * 3. Trigger immediate sync if online
          */
         override suspend fun addPin(pin: Pin) {
-            Log.d(TAG, "Adding pin: ${pin.id} at (${pin.location.longitude}, ${pin.location.latitude})")
+            Timber.d("Adding pin: ${pin.id} at (${pin.location.longitude}, ${pin.location.latitude})")
 
             // Step 1: Save to local database immediately (optimistic update)
             pinDao.insertPin(pin.toEntity())
-            Log.d(TAG, "Pin saved to local database: ${pin.id}")
+            Timber.d("Pin saved to local database: ${pin.id}")
 
             // Step 2: Queue for remote sync
             syncManager.queuePinForUpload(pin)
-            Log.d(TAG, "Pin queued for upload: ${pin.id}")
+            Timber.d("Pin queued for upload: ${pin.id}")
 
             // Step 3: Trigger immediate sync (will only sync if online)
             val syncResult = syncManager.syncWithRemote()
             if (syncResult.isSuccess) {
-                Log.d(TAG, "Immediate sync succeeded for pin: ${pin.id}")
+                Timber.d("Immediate sync succeeded for pin: ${pin.id}")
             } else {
-                Log.w(TAG, "Immediate sync failed for pin: ${pin.id}, will retry later: ${syncResult.exceptionOrNull()?.message}")
+                Timber.w("Immediate sync failed for pin: ${pin.id}, will retry later: ${syncResult.exceptionOrNull()?.message}")
             }
         }
 
@@ -83,7 +80,7 @@ class PinRepositoryImpl
          * 2. Queue for remote sync
          */
         override suspend fun updatePin(pin: Pin) {
-            Log.d(TAG, "Updating pin: ${pin.id}")
+            Timber.d("Updating pin: ${pin.id}")
 
             // Step 1: Update local database immediately
             pinDao.updatePin(pin.toEntity())
@@ -98,7 +95,7 @@ class PinRepositoryImpl
          * 2. Queue for remote deletion
          */
         override suspend fun deletePin(pin: Pin) {
-            Log.d(TAG, "Deleting pin: ${pin.id}")
+            Timber.d("Deleting pin: ${pin.id}")
 
             // Step 1: Delete from local database immediately
             pinDao.deletePin(pin.toEntity())
@@ -112,7 +109,7 @@ class PinRepositoryImpl
          * Note: This does NOT sync with remote (useful for testing/reset).
          */
         override suspend fun deleteAllPins() {
-            Log.d(TAG, "Deleting all pins (local only)")
+            Timber.d("Deleting all pins (local only)")
             pinDao.deleteAllPins()
         }
 

@@ -1,6 +1,5 @@
 package com.carryzonemap.app.data.repository
 
-import android.util.Log
 import com.carryzonemap.app.domain.model.User
 import com.carryzonemap.app.domain.repository.AuthRepository
 import com.carryzonemap.app.domain.repository.AuthState
@@ -14,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -30,9 +30,6 @@ class SupabaseAuthRepository
     constructor(
         private val auth: Auth,
     ) : AuthRepository {
-        companion object {
-            private const val TAG = "SupabaseAuthRepository"
-        }
 
         // Scope for managing coroutines in this repository
         private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -44,11 +41,11 @@ class SupabaseAuthRepository
             get() = auth.currentUserOrNull()?.id
 
         init {
-            Log.d(TAG, "Initializing SupabaseAuthRepository")
+            Timber.d("Initializing SupabaseAuthRepository")
             // Observe session status changes for automatic state updates
             scope.launch {
                 auth.sessionStatus.collect { status ->
-                    Log.d(TAG, "Session status changed: $status")
+                    Timber.d("Session status changed: $status")
                     when (status) {
                         is SessionStatus.Authenticated -> {
                             val currentUser = auth.currentUserOrNull()
@@ -59,20 +56,20 @@ class SupabaseAuthRepository
                                         email = currentUser.email,
                                     )
                                 _authState.value = AuthState.Authenticated(user)
-                                Log.d(TAG, "User authenticated from session: ${user.email}")
+                                Timber.d("User authenticated from session: ${user.email}")
                             }
                         }
                         is SessionStatus.Initializing -> {
-                            Log.d(TAG, "Initializing session...")
+                            Timber.d("Initializing session...")
                             _authState.value = AuthState.Loading
                         }
                         is SessionStatus.RefreshFailure -> {
-                            Log.w(TAG, "Session refresh failed, keeping current state")
+                            Timber.w("Session refresh failed, keeping current state")
                             // Don't change state on refresh failure - keep user logged in
                             // Session will retry on next network availability
                         }
                         is SessionStatus.NotAuthenticated -> {
-                            Log.d(TAG, "User not authenticated")
+                            Timber.d("User not authenticated")
                             _authState.value = AuthState.Unauthenticated
                         }
                     }
@@ -85,7 +82,7 @@ class SupabaseAuthRepository
             password: String,
         ): Result<User> {
             return try {
-                Log.d(TAG, "Attempting sign up with email: $email")
+                Timber.d("Attempting sign up with email: $email")
                 auth.signUpWith(Email) {
                     this.email = email
                     this.password = password
@@ -99,15 +96,15 @@ class SupabaseAuthRepository
                             email = currentUser.email,
                         )
                     // Note: authState will be updated by session status collector
-                    Log.d(TAG, "Sign up successful: ${user.email}, session will be persisted")
+                    Timber.d("Sign up successful: ${user.email}, session will be persisted")
                     Result.success(user)
                 } else {
                     val error = Exception("Sign up succeeded but user is null")
-                    Log.e(TAG, "Sign up error", error)
+                    Timber.e(error, "Sign up error")
                     Result.failure(error)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Sign up failed: ${e.message}", e)
+                Timber.e(e, "Sign up failed: ${e.message}")
                 Result.failure(e)
             }
         }
@@ -117,7 +114,7 @@ class SupabaseAuthRepository
             password: String,
         ): Result<User> {
             return try {
-                Log.d(TAG, "Attempting sign in with email: $email")
+                Timber.d("Attempting sign in with email: $email")
                 auth.signInWith(Email) {
                     this.email = email
                     this.password = password
@@ -131,28 +128,28 @@ class SupabaseAuthRepository
                             email = currentUser.email,
                         )
                     // Note: authState will be updated by session status collector
-                    Log.d(TAG, "Sign in successful: ${user.email}, session will be persisted")
+                    Timber.d("Sign in successful: ${user.email}, session will be persisted")
                     Result.success(user)
                 } else {
                     val error = Exception("Sign in succeeded but user is null")
-                    Log.e(TAG, "Sign in error", error)
+                    Timber.e(error, "Sign in error")
                     Result.failure(error)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Sign in failed: ${e.message}", e)
+                Timber.e(e, "Sign in failed: ${e.message}")
                 Result.failure(e)
             }
         }
 
         override suspend fun signOut(): Result<Unit> {
             return try {
-                Log.d(TAG, "Signing out and clearing session...")
+                Timber.d("Signing out and clearing session...")
                 auth.signOut()
                 // Note: authState will be updated by session status collector
-                Log.d(TAG, "Sign out successful, session cleared")
+                Timber.d("Sign out successful, session cleared")
                 Result.success(Unit)
             } catch (e: Exception) {
-                Log.e(TAG, "Sign out failed: ${e.message}", e)
+                Timber.e(e, "Sign out failed: ${e.message}")
                 Result.failure(e)
             }
         }

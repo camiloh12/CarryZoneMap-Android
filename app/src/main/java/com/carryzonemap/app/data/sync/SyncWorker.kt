@@ -1,12 +1,12 @@
 package com.carryzonemap.app.data.sync
 
 import android.content.Context
-import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import timber.log.Timber
 
 /**
  * Background worker for periodic synchronization with remote server.
@@ -30,8 +30,6 @@ class SyncWorker
         private val syncManager: SyncManager,
     ) : CoroutineWorker(context, params) {
         companion object {
-            private const val TAG = "SyncWorker"
-
             /**
              * Unique name for periodic sync work.
              */
@@ -44,22 +42,22 @@ class SyncWorker
         }
 
         override suspend fun doWork(): Result {
-            Log.d(TAG, "Starting background sync")
+            Timber.d("Starting background sync")
 
             return try {
                 // Attempt to sync with remote
                 val result = syncManager.syncWithRemote()
 
                 if (result.isSuccess) {
-                    Log.d(TAG, "Background sync succeeded")
+                    Timber.d("Background sync succeeded")
                     Result.success()
                 } else {
-                    Log.w(TAG, "Background sync failed: ${result.exceptionOrNull()?.message}")
+                    Timber.w("Background sync failed: ${result.exceptionOrNull()?.message}")
                     // Retry on failure (WorkManager will handle backoff)
                     Result.retry()
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Background sync error", e)
+                Timber.e(e, "Background sync error")
                 // Retry on exception
                 Result.retry()
             }
