@@ -160,8 +160,8 @@ fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
                                 mapLibreMap = map
 
                                 // Load map style
-                                val apiKey = com.carryzonemap.app.BuildConfig.MAPTILER_API_KEY
-                                val styleUrl = "https://api.maptiler.com/maps/streets-v2/style.json?key=$apiKey"
+                                val apiKey = com.carryzonemap.app.BuildConfig.STADIA_API_KEY
+                                val styleUrl = "https://tiles.stadiamaps.com/styles/osm_bright.json?api_key=$apiKey"
                                 map.setStyle(styleUrl) { style ->
                                     currentStyle = style
 
