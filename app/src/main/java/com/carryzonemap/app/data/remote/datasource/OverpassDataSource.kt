@@ -64,6 +64,14 @@ class OverpassDataSource @Inject constructor(
             }
 
             val responseText = response.bodyAsText()
+
+            // Check if response is XML (error message)
+            if (responseText.trimStart().startsWith("<?xml") || responseText.trimStart().startsWith("<")) {
+                Timber.w("Overpass API returned XML instead of JSON. Response: ${responseText.take(200)}...")
+                Timber.w("This usually means the API is overloaded or rate-limited. Returning empty POI list.")
+                return Result.success(emptyList())
+            }
+
             val pois = parseOverpassResponse(responseText)
 
             Timber.d("Fetched ${pois.size} POIs from Overpass API")
@@ -82,6 +90,12 @@ class OverpassDataSource @Inject constructor(
         val pois = mutableListOf<Poi>()
 
         try {
+            // Additional safety check
+            if (responseText.isBlank()) {
+                Timber.w("Empty response from Overpass API")
+                return emptyList()
+            }
+
             val jsonResponse = json.parseToJsonElement(responseText).jsonObject
             val elements = jsonResponse["elements"]?.jsonArray ?: return emptyList()
 
@@ -115,7 +129,7 @@ class OverpassDataSource @Inject constructor(
                 )
             }
         } catch (e: Exception) {
-            Timber.e(e, "Failed to parse Overpass response")
+            Timber.e(e, "Failed to parse Overpass response. Response start: ${responseText.take(100)}")
         }
 
         return pois
