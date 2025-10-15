@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.carryzonemap.app.data.remote.datasource.OverpassDataSource
 import com.carryzonemap.app.data.sync.SyncManager
 import com.carryzonemap.app.domain.model.Location
 import com.carryzonemap.app.domain.model.Pin
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 import javax.inject.Inject
 
 /**
@@ -38,6 +40,7 @@ import javax.inject.Inject
  * @property pinRepository Repository for pin data operations
  * @property authRepository Repository for authentication operations
  * @property syncManager Manager for sync operations and real-time subscriptions
+ * @property overpassDataSource Data source for fetching POIs from OpenStreetMap
  * @property fusedLocationClient Client for accessing device location
  */
 @HiltViewModel
@@ -47,6 +50,7 @@ class MapViewModel
         private val pinRepository: PinRepository,
         private val authRepository: AuthRepository,
         private val syncManager: SyncManager,
+        private val overpassDataSource: OverpassDataSource,
         private val fusedLocationClient: FusedLocationProviderClient,
         @ApplicationContext private val context: Context,
     ) : ViewModel() {
@@ -103,9 +107,9 @@ class MapViewModel
                 syncManager
                     .startRealtimeSubscription()
                     .catch { error ->
-                        android.util.Log.e("MapViewModel", "Real-time sync error", error)
+                        Timber.e(error, "Real-time sync error")
                     }.collect { message ->
-                        android.util.Log.d("MapViewModel", message)
+                        Timber.d(message)
                     }
             }
         }
@@ -365,6 +369,35 @@ class MapViewModel
             locationCallback?.let {
                 fusedLocationClient.removeLocationUpdates(it)
                 locationCallback = null
+            }
+        }
+
+        /**
+         * Fetches POIs (businesses, amenities) within the given map viewport bounds.
+         * Call this when the user moves the map to load POIs for the visible area.
+         *
+         * @param south Southern latitude bound
+         * @param west Western longitude bound
+         * @param north Northern latitude bound
+         * @param east Eastern longitude bound
+         */
+        fun fetchPoisInViewport(
+            south: Double,
+            west: Double,
+            north: Double,
+            east: Double,
+        ) {
+            viewModelScope.launch {
+                Timber.d("Fetching POIs for viewport: ($south,$west,$north,$east)")
+                overpassDataSource.fetchPoisInBounds(south, west, north, east)
+                    .onSuccess { pois ->
+                        Timber.d("Successfully fetched ${pois.size} POIs")
+                        _uiState.update { it.copy(pois = pois) }
+                    }
+                    .onFailure { error ->
+                        Timber.e(error, "Failed to fetch POIs")
+                        // Don't show error to user for POI failures, just log it
+                    }
             }
         }
     }
