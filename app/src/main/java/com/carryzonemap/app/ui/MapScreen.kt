@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.carryzonemap.app.domain.mapper.PinMapper.toFeatures
+import com.carryzonemap.app.domain.model.Poi
 import com.carryzonemap.app.map.FeatureDataStore
 import com.carryzonemap.app.map.FeatureLayerManager
 import com.carryzonemap.app.ui.components.PinDialog
@@ -43,6 +44,12 @@ import org.maplibre.android.location.modes.RenderMode
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.layers.SymbolLayer
+import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.geojson.Feature
+import org.maplibre.geojson.FeatureCollection
+import org.maplibre.geojson.Point
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,6 +91,13 @@ fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
         }
     }
 
+    // Update map when POIs change
+    LaunchedEffect(uiState.pois) {
+        currentStyle?.let { style ->
+            updatePoiLayer(style, uiState.pois)
+        }
+    }
+
     // Zoom to user location when it becomes available (only once on startup)
     LaunchedEffect(uiState.currentLocation, mapLibreMap) {
         if (!hasZoomedToUserLocation && uiState.currentLocation != null && mapLibreMap != null) {
@@ -106,7 +120,7 @@ fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
                 actions = {
                     IconButton(onClick = { viewModel.signOut() }) {
                         Icon(
-                            Icons.Filled.Logout,
+                            Icons.AutoMirrored.Filled.Logout,
                             contentDescription = "Sign out"
                         )
                     }
@@ -161,13 +175,17 @@ fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
 
                                 // Load map style
                                 val apiKey = com.carryzonemap.app.BuildConfig.MAPTILER_API_KEY
-                                val styleUrl = "https://api.maptiler.com/maps/streets-v2/style.json?key=$apiKey"
+                                val styleUrl =
+                                    "https://api.maptiler.com/maps/streets-v2/style.json?key=$apiKey"
                                 map.setStyle(styleUrl) { style ->
                                     currentStyle = style
 
                                     // Add pins layer
                                     val features = uiState.pins.toFeatures()
                                     featureLayerManager.addSourceAndLayer(style, features)
+
+                                    // Add POI layer
+                                    addPoiLayer(style)
 
                                     // Enable location component (blue dot) if permission granted
                                     if (uiState.hasLocationPermission) {
@@ -182,9 +200,20 @@ fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
                                         ),
                                     )
 
+                                    // Fetch POIs for initial viewport
+                                    fetchPoisForCurrentViewport(map, viewModel)
+
+                                    // Fetch POIs when camera moves
+                                    map.addOnCameraIdleListener {
+                                        fetchPoisForCurrentViewport(map, viewModel)
+                                    }
+
                                     // Set up map interaction listeners
                                     map.addOnMapLongClickListener { latLng ->
-                                        viewModel.showCreatePinDialog(latLng.longitude, latLng.latitude)
+                                        viewModel.showCreatePinDialog(
+                                            latLng.longitude,
+                                            latLng.latitude
+                                        )
                                         true
                                     }
 
@@ -260,3 +289,60 @@ private fun enableLocationComponent(
     locationComponent.isLocationComponentEnabled = true
     locationComponent.renderMode = RenderMode.COMPASS
 }
+
+/**
+ * Adds the POI layer to the map for displaying business names and amenities.
+ */
+private fun addPoiLayer(style: Style) {
+    // Add POI source
+    val poiSource = GeoJsonSource(POI_SOURCE_ID, FeatureCollection.fromFeatures(emptyList()))
+    style.addSource(poiSource)
+
+    // Add POI label layer
+    val poiLayer = SymbolLayer(POI_LAYER_ID, POI_SOURCE_ID).withProperties(
+        PropertyFactory.textField("{name}"),
+        PropertyFactory.textSize(11f),
+        PropertyFactory.textColor("#333333"),
+        PropertyFactory.textHaloColor("#FFFFFF"),
+        PropertyFactory.textHaloWidth(1.5f),
+        PropertyFactory.textOffset(arrayOf(0f, 0.5f)),
+        PropertyFactory.textAnchor("top"),
+        PropertyFactory.textAllowOverlap(false),
+        PropertyFactory.textIgnorePlacement(false)
+    )
+    style.addLayer(poiLayer)
+}
+
+/**
+ * Updates the POI layer with new POI data.
+ */
+private fun updatePoiLayer(style: Style, pois: List<Poi>) {
+    val source = style.getSourceAs<GeoJsonSource>(POI_SOURCE_ID)
+    if (source != null) {
+        val features = pois.map { poi ->
+            Feature.fromGeometry(
+                Point.fromLngLat(poi.longitude, poi.latitude)
+            ).apply {
+                addStringProperty("name", poi.name)
+                addStringProperty("type", poi.type)
+            }
+        }
+        source.setGeoJson(FeatureCollection.fromFeatures(features))
+    }
+}
+
+/**
+ * Fetches POIs for the current map viewport.
+ */
+private fun fetchPoisForCurrentViewport(map: MapLibreMap, viewModel: MapViewModel) {
+    val bounds = map.projection.visibleRegion.latLngBounds
+    viewModel.fetchPoisInViewport(
+        south = bounds.latitudeSouth,
+        west = bounds.longitudeWest,
+        north = bounds.latitudeNorth,
+        east = bounds.longitudeEast
+    )
+}
+
+private const val POI_SOURCE_ID = "poi-source"
+private const val POI_LAYER_ID = "poi-layer"

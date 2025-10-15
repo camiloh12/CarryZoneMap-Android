@@ -36,6 +36,8 @@ android {
 
         // Expose the API key as a BuildConfig field
         buildConfigField("String", "MAPTILER_API_KEY", "\"${localProperties.getProperty("MAPTILER_API_KEY") ?: ""}\"")
+        buildConfigField("String", "MAPBOX_ACCESS_TOKEN", "\"${localProperties.getProperty("MAPBOX_ACCESS_TOKEN") ?: ""}\"")
+        buildConfigField("String", "STADIA_API_KEY", "\"${localProperties.getProperty("STADIA_API_KEY") ?: ""}\"")
 
         // Supabase configuration
         buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL") ?: ""}\"")
