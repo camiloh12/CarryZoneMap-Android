@@ -56,6 +56,7 @@ fun PinDialog(
         is PinDialogState.Creating -> {
             PinDialogContent(
                 title = "Create Pin",
+                poiName = dialogState.name,
                 selectedStatus = dialogState.selectedStatus,
                 isEditing = false,
                 onStatusSelected = onStatusSelected,
@@ -67,6 +68,7 @@ fun PinDialog(
         is PinDialogState.Editing -> {
             PinDialogContent(
                 title = "Edit Pin",
+                poiName = dialogState.pin.name,
                 selectedStatus = dialogState.selectedStatus,
                 isEditing = true,
                 onStatusSelected = onStatusSelected,
@@ -81,6 +83,7 @@ fun PinDialog(
 @Composable
 private fun PinDialogContent(
     title: String,
+    poiName: String,
     selectedStatus: PinStatus,
     isEditing: Boolean,
     onStatusSelected: (PinStatus) -> Unit,
@@ -98,6 +101,13 @@ private fun PinDialogContent(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                // Display POI name
+                Text(
+                    text = poiName,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+
                 Text(
                     text = "Select carry zone status:",
                     style = MaterialTheme.typography.bodyMedium,

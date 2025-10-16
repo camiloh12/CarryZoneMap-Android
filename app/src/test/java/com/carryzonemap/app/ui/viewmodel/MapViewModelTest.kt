@@ -59,6 +59,7 @@ class MapViewModelTest {
     private val testPin =
         Pin(
             id = "test-123",
+            name = "Test POI",
             location = Location(latitude = 40.7128, longitude = -74.0060),
             status = PinStatus.ALLOWED,
         )
@@ -112,7 +113,7 @@ class MapViewModelTest {
             viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            viewModel.showCreatePinDialog(-74.0060, 40.7128)
+            viewModel.showCreatePinDialog(name = "Test POI", longitude = -74.0060, latitude = 40.7128)
             testDispatcher.scheduler.advanceUntilIdle()
 
             val dialogState = viewModel.uiState.value.pinDialogState
@@ -129,7 +130,7 @@ class MapViewModelTest {
             viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            viewModel.showCreatePinDialog(-74.0060, 40.7128)
+            viewModel.showCreatePinDialog(name = "Test POI", longitude = -74.0060, latitude = 40.7128)
             testDispatcher.scheduler.advanceUntilIdle()
 
             viewModel.onDialogStatusSelected(PinStatus.UNCERTAIN)
@@ -146,7 +147,7 @@ class MapViewModelTest {
             viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            viewModel.showCreatePinDialog(-74.0060, 40.7128)
+            viewModel.showCreatePinDialog(name = "Test POI", longitude = -74.0060, latitude = 40.7128)
             viewModel.onDialogStatusSelected(PinStatus.NO_GUN)
             viewModel.confirmPinDialog()
             testDispatcher.scheduler.advanceUntilIdle()
@@ -217,7 +218,7 @@ class MapViewModelTest {
             viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            viewModel.showCreatePinDialog(-74.0060, 40.7128)
+            viewModel.showCreatePinDialog(name = "Test POI", longitude = -74.0060, latitude = 40.7128)
             testDispatcher.scheduler.advanceUntilIdle()
             assertTrue(viewModel.uiState.value.pinDialogState is PinDialogState.Creating)
 

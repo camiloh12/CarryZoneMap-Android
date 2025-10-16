@@ -24,6 +24,7 @@ object SupabaseMapper {
     fun SupabasePinDto.toDomain(): Pin {
         return Pin(
             id = id,
+            name = name,
             location = Location.fromLngLat(longitude, latitude),
             status = PinStatus.fromColorCode(status),
             metadata = PinMetadata(
@@ -43,6 +44,7 @@ object SupabaseMapper {
     fun Pin.toSupabaseDto(): SupabasePinDto {
         return SupabasePinDto(
             id = id,
+            name = name,
             longitude = location.longitude,
             latitude = location.latitude,
             status = status.colorCode,

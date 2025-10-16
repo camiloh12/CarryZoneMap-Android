@@ -44,6 +44,7 @@ class SupabaseMapperTest {
         // Given
         val dto = SupabasePinDto(
             id = testId,
+            name = "Test POI",
             longitude = testLongitude,
             latitude = testLatitude,
             status = 0, // ALLOWED
@@ -101,6 +102,7 @@ class SupabaseMapperTest {
         // Given
         val dto = SupabasePinDto(
             id = testId,
+            name = "Test POI",
             longitude = testLongitude,
             latitude = testLatitude,
             status = 0,
@@ -127,6 +129,7 @@ class SupabaseMapperTest {
         // Given
         val pin = Pin(
             id = testId,
+            name = "Test POI",
             location = Location.fromLngLat(testLongitude, testLatitude),
             status = PinStatus.UNCERTAIN,
             metadata = PinMetadata(
@@ -187,6 +190,7 @@ class SupabaseMapperTest {
         // Given
         val originalDto = SupabasePinDto(
             id = testId,
+            name = "Test POI",
             longitude = testLongitude,
             latitude = testLatitude,
             status = 2, // NO_GUN
@@ -218,6 +222,7 @@ class SupabaseMapperTest {
         // Given
         val originalDto = SupabasePinDto(
             id = testId,
+            name = "Test POI",
             longitude = testLongitude,
             latitude = testLatitude,
             status = 0,
@@ -366,6 +371,7 @@ class SupabaseMapperTest {
     ): SupabasePinDto {
         return SupabasePinDto(
             id = id,
+            name = "Test POI",
             longitude = longitude,
             latitude = latitude,
             status = status,
@@ -392,6 +398,7 @@ class SupabaseMapperTest {
     ): Pin {
         return Pin(
             id = id,
+            name = "Test POI",
             location = Location.fromLngLat(longitude, latitude),
             status = status,
             metadata = PinMetadata(

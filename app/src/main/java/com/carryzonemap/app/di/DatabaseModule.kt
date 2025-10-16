@@ -63,6 +63,18 @@ object DatabaseModule {
             }
         }
 
+    /**
+     * Migration from version 3 to version 4.
+     * Adds name column to pins table for storing POI names.
+     */
+    private val MIGRATION_3_4 =
+        object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add name column to pins table with default empty string for existing pins
+                db.execSQL("ALTER TABLE pins ADD COLUMN name TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
     @Provides
     @Singleton
     fun provideCarryZoneDatabase(
@@ -73,7 +85,7 @@ object DatabaseModule {
             CarryZoneDatabase::class.java,
             CarryZoneDatabase.DATABASE_NAME,
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .fallbackToDestructiveMigration() // For development - remove in production
             .build()
     }

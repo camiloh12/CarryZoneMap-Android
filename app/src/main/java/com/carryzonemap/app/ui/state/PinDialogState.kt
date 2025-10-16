@@ -16,10 +16,12 @@ sealed class PinDialogState {
     /**
      * Dialog is shown for creating a new pin.
      *
+     * @property name The name of the POI this pin belongs to
      * @property location The location where the pin will be created
      * @property selectedStatus The currently selected status (default: ALLOWED)
      */
     data class Creating(
+        val name: String,
         val location: Location,
         val selectedStatus: PinStatus = PinStatus.ALLOWED,
     ) : PinDialogState()

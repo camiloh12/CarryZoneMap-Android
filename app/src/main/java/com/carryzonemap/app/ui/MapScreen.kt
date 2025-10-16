@@ -50,6 +50,7 @@ import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.Point
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -209,28 +210,78 @@ fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
                                     }
 
                                     // Set up map interaction listeners
-                                    map.addOnMapLongClickListener { latLng ->
-                                        viewModel.showCreatePinDialog(
-                                            latLng.longitude,
-                                            latLng.latitude
-                                        )
-                                        true
-                                    }
-
                                     map.addOnMapClickListener { point ->
                                         val screenPoint = map.projection.toScreenLocation(point)
-                                        val clickedFeatures =
+
+                                        // First, check if user clicked on an existing pin
+                                        val clickedPinFeatures =
                                             map.queryRenderedFeatures(
                                                 screenPoint,
                                                 FeatureLayerManager.USER_PINS_LAYER_ID,
                                             )
-                                        clickedFeatures.firstOrNull()?.let { feature ->
-                                            feature.getStringProperty(FeatureDataStore.PROPERTY_FEATURE_ID)
+                                        val pinFeature = clickedPinFeatures.firstOrNull()
+                                        if (pinFeature != null) {
+                                            // User clicked on existing pin - show edit dialog
+                                            pinFeature.getStringProperty(FeatureDataStore.PROPERTY_FEATURE_ID)
                                                 ?.let { pinId ->
                                                     viewModel.showEditPinDialog(pinId)
                                                 }
+                                            return@addOnMapClickListener true
                                         }
-                                        true
+
+                                        // Second, check if user clicked on our Overpass POI layer
+                                        val clickedOverpassPoiFeatures =
+                                            map.queryRenderedFeatures(
+                                                screenPoint,
+                                                POI_LAYER_ID,
+                                            )
+                                        val overpassPoiFeature = clickedOverpassPoiFeatures.firstOrNull()
+                                        if (overpassPoiFeature != null) {
+                                            val poiName = overpassPoiFeature.getStringProperty("name") ?: "Unknown POI"
+                                            viewModel.showCreatePinDialog(
+                                                poiName,
+                                                point.longitude,
+                                                point.latitude
+                                            )
+                                            return@addOnMapClickListener true
+                                        }
+
+                                        // Third, check ALL features at click point to find POIs
+                                        // Query all features without layer filter
+                                        val allFeatures = map.queryRenderedFeatures(screenPoint)
+
+                                        // Log all features for debugging
+                                        Timber.d("Clicked features count: ${allFeatures.size}")
+                                        allFeatures.take(5).forEach { feature ->
+                                            val props = feature.properties()
+                                            Timber.d("Feature properties: $props")
+                                        }
+
+                                        // Look for any feature with a name property
+                                        val poiFeature = allFeatures.firstOrNull { feature ->
+                                            val hasName = feature.hasProperty("name") &&
+                                                         !feature.getStringProperty("name").isNullOrBlank()
+                                            hasName
+                                        }
+
+                                        if (poiFeature != null) {
+                                            val poiName = poiFeature.getStringProperty("name")
+                                                ?: poiFeature.getStringProperty("name:en")
+                                                ?: poiFeature.getStringProperty("name_en")
+
+                                            if (!poiName.isNullOrBlank()) {
+                                                Timber.d("Found POI: $poiName")
+                                                viewModel.showCreatePinDialog(
+                                                    poiName,
+                                                    point.longitude,
+                                                    point.latitude
+                                                )
+                                                return@addOnMapClickListener true
+                                            }
+                                        }
+
+                                        // No pin or POI clicked
+                                        false
                                     }
                                 }
                             }

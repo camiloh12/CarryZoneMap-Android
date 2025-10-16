@@ -12,6 +12,7 @@ import org.maplibre.geojson.Point
  */
 object PinMapper {
     private const val PROPERTY_FEATURE_ID = "feature_id"
+    private const val PROPERTY_NAME = "name"
     private const val PROPERTY_COLOR_STATE = "color_state"
     private const val PROPERTY_PHOTO_URI = "photo_uri"
     private const val PROPERTY_NOTES = "notes"
@@ -25,6 +26,7 @@ object PinMapper {
         val feature = Feature.fromGeometry(point)
 
         feature.addStringProperty(PROPERTY_FEATURE_ID, id)
+        feature.addStringProperty(PROPERTY_NAME, name)
         feature.addNumberProperty(PROPERTY_COLOR_STATE, status.colorCode)
 
         metadata.photoUri?.let {
@@ -45,6 +47,7 @@ object PinMapper {
     fun Feature.toPin(): Pin? {
         val point = geometry() as? Point ?: return null
         val id = getStringProperty(PROPERTY_FEATURE_ID) ?: return null
+        val name = getStringProperty(PROPERTY_NAME) ?: return null
         val colorCode = getNumberProperty(PROPERTY_COLOR_STATE)?.toInt() ?: 0
 
         val location =
@@ -66,6 +69,7 @@ object PinMapper {
 
         return Pin(
             id = id,
+            name = name,
             location = location,
             status = status,
             metadata = metadata,

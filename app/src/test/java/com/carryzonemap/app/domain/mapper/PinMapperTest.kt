@@ -19,6 +19,7 @@ class PinMapperTest {
     private val testPin =
         Pin(
             id = "test-123",
+            name = "Test POI",
             location = Location(latitude = 40.7128, longitude = -74.0060),
             status = PinStatus.UNCERTAIN,
             metadata =
@@ -75,6 +76,7 @@ class PinMapperTest {
         val pinWithNulls =
             Pin(
                 id = "null-test",
+                name = "Test POI",
                 location = Location(0.0, 0.0),
                 status = PinStatus.ALLOWED,
                 metadata = PinMetadata(),
@@ -92,12 +94,14 @@ class PinMapperTest {
         val point = Point.fromLngLat(-74.0060, 40.7128)
         val feature = Feature.fromGeometry(point)
         feature.addStringProperty("feature_id", "minimal-test")
+        feature.addStringProperty("name", "Test POI")
         feature.addNumberProperty("color_state", 0)
 
         val pin = feature.toPin()
 
         assertNotNull(pin)
         assertEquals("minimal-test", pin!!.id)
+        assertEquals("Test POI", pin.name)
         assertNull(pin.metadata.photoUri)
         assertNull(pin.metadata.notes)
     }
@@ -128,6 +132,7 @@ class PinMapperTest {
         val point = Point.fromLngLat(-74.0060, 40.7128)
         val feature = Feature.fromGeometry(point)
         feature.addStringProperty("feature_id", "default-status")
+        feature.addStringProperty("name", "Test POI")
 
         val pin = feature.toPin()
 

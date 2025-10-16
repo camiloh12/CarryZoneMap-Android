@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
  * Room entity representing a location pin stored in the local database.
  *
  * @property id Unique identifier for the pin
+ * @property name Name of the POI (Point of Interest) this pin belongs to
  * @property longitude Longitude coordinate
  * @property latitude Latitude coordinate
  * @property status Status code (0=ALLOWED, 1=UNCERTAIN, 2=NO_GUN)
@@ -21,6 +22,7 @@ import androidx.room.PrimaryKey
 data class PinEntity(
     @PrimaryKey
     val id: String,
+    val name: String,
     val longitude: Double,
     val latitude: Double,
     val status: Int,
