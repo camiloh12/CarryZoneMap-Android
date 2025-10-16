@@ -6,7 +6,8 @@
       "Bash(tree:*)",
       "Bash(cat:*)",
       "mcp__supabase__list_projects",
-      "mcp__supabase__execute_sql"
+      "mcp__supabase__execute_sql",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
