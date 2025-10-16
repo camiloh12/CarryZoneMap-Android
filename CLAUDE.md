@@ -211,11 +211,22 @@ When adding new fields to Pin:
 ## Configuration
 
 ### Java Version
-Project requires **Java 21** (configured in `gradle.properties`):
+Project requires **Java 21**. Gradle automatically uses Java from:
+1. `JAVA_HOME` environment variable (if set)
+2. The Java version that launched Gradle
+3. Android Studio/IntelliJ's configured JDK
+
+**Local Development**: Ensure Android Studio is configured to use Java 21 (File → Project Structure → SDK Location → Gradle JDK)
+
+**CI/CD**: GitHub Actions workflow automatically sets up Java 21 (configured in `.github/workflows/ci.yml`)
+
+**Manual Override** (optional): If needed, you can set a specific Java path in `gradle.properties`:
 ```properties
-org.gradle.java.home=/usr/lib/jvm/java-1.21.0-openjdk-amd64
+# Uncomment and adjust path if you need to override Java version
+# org.gradle.java.home=/usr/lib/jvm/java-1.21.0-openjdk-amd64
 ```
-Adjust path if Java 21 is installed elsewhere.
+
+**Note**: Hardcoding Java paths in `gradle.properties` is not recommended as it breaks portability across different machines and CI environments.
 
 ### API Keys
 Configuration in `local.properties`:
