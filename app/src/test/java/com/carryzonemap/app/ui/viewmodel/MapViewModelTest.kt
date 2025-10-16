@@ -3,6 +3,7 @@ package com.carryzonemap.app.ui.viewmodel
 import android.content.Context
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.test.core.app.ApplicationProvider
+import com.carryzonemap.app.data.remote.datasource.OverpassDataSource
 import com.carryzonemap.app.data.sync.SyncManager
 import com.carryzonemap.app.data.sync.SyncStatus
 import com.carryzonemap.app.domain.model.Location
@@ -50,6 +51,7 @@ class MapViewModelTest {
     private lateinit var fakeRepository: FakeRepository
     private lateinit var fakeAuthRepository: FakeAuthRepository
     private lateinit var fakeSyncManager: FakeSyncManager
+    private lateinit var mockOverpassDataSource: OverpassDataSource
     private lateinit var mockLocationClient: FusedLocationProviderClient
     private lateinit var context: Context
     private lateinit var viewModel: MapViewModel
@@ -67,6 +69,7 @@ class MapViewModelTest {
         fakeRepository = FakeRepository()
         fakeAuthRepository = FakeAuthRepository()
         fakeSyncManager = FakeSyncManager()
+        mockOverpassDataSource = mock(OverpassDataSource::class.java)
         mockLocationClient = mock(FusedLocationProviderClient::class.java)
         context = ApplicationProvider.getApplicationContext()
     }
@@ -79,7 +82,7 @@ class MapViewModelTest {
     @Test
     fun `initial state is correct`() =
         runTest {
-            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
             val state = viewModel.uiState.value
@@ -95,7 +98,7 @@ class MapViewModelTest {
         runTest {
             fakeRepository.emitPins(listOf(testPin))
 
-            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
             val state = viewModel.uiState.value
@@ -106,7 +109,7 @@ class MapViewModelTest {
     @Test
     fun `showCreatePinDialog opens dialog with correct location`() =
         runTest {
-            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
             viewModel.showCreatePinDialog(-74.0060, 40.7128)
@@ -123,7 +126,7 @@ class MapViewModelTest {
     @Test
     fun `onDialogStatusSelected updates selected status in creating dialog`() =
         runTest {
-            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
             viewModel.showCreatePinDialog(-74.0060, 40.7128)
@@ -140,7 +143,7 @@ class MapViewModelTest {
     @Test
     fun `confirmPinDialog creates pin with selected status`() =
         runTest {
-            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
             viewModel.showCreatePinDialog(-74.0060, 40.7128)
@@ -163,7 +166,7 @@ class MapViewModelTest {
         runTest {
             fakeRepository.emitPins(listOf(testPin))
 
-            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
             viewModel.showEditPinDialog(testPin.id)
@@ -181,7 +184,7 @@ class MapViewModelTest {
         runTest {
             fakeRepository.emitPins(listOf(testPin))
 
-            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
             viewModel.showEditPinDialog(testPin.id)
@@ -198,7 +201,7 @@ class MapViewModelTest {
         runTest {
             fakeRepository.emitPins(listOf(testPin))
 
-            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
             viewModel.showEditPinDialog(testPin.id)
@@ -211,7 +214,7 @@ class MapViewModelTest {
     @Test
     fun `dismissPinDialog closes dialog`() =
         runTest {
-            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
             viewModel.showCreatePinDialog(-74.0060, 40.7128)
@@ -228,7 +231,7 @@ class MapViewModelTest {
         runTest {
             fakeRepository.shouldThrowError = true
 
-            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
             assertNotNull(viewModel.uiState.value.error)
 
@@ -246,7 +249,7 @@ class MapViewModelTest {
             `when`(mockLocation.longitude).thenReturn(-74.0060)
             `when`(mockLocationClient.lastLocation).thenReturn(Tasks.forResult(mockLocation))
 
-            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
             viewModel.onLocationPermissionResult(true)
@@ -264,7 +267,7 @@ class MapViewModelTest {
     @Test
     fun `onLocationPermissionResult updates permission state`() =
         runTest {
-            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
             assertFalse(viewModel.uiState.value.hasLocationPermission)
@@ -280,7 +283,7 @@ class MapViewModelTest {
         runTest {
             fakeRepository.shouldThrowError = true
 
-            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
             assertNotNull(viewModel.uiState.value.error)
@@ -290,7 +293,7 @@ class MapViewModelTest {
     @Test
     fun `signOut calls auth repository signOut`() =
         runTest {
-            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockLocationClient, context)
+            viewModel = MapViewModel(fakeRepository, fakeAuthRepository, fakeSyncManager, mockOverpassDataSource, mockLocationClient, context)
             testDispatcher.scheduler.advanceUntilIdle()
 
             viewModel.signOut()
