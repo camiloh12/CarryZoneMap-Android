@@ -33,7 +33,6 @@ class PinRepositoryImpl
         private val pinDao: PinDao,
         private val syncManager: SyncManager,
     ) : PinRepository {
-
         /**
          * Reads from local database for instant UI updates.
          * Changes from remote sync will automatically flow through via Room's reactive queries.

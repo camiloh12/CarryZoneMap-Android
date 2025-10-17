@@ -372,11 +372,17 @@ class MapViewModelTest {
         override val currentUserId: String?
             get() = currentUser
 
-        override suspend fun signUpWithEmail(email: String, password: String): Result<com.carryzonemap.app.domain.model.User> {
+        override suspend fun signUpWithEmail(
+            email: String,
+            password: String,
+        ): Result<com.carryzonemap.app.domain.model.User> {
             return Result.success(com.carryzonemap.app.domain.model.User(id = "test-user-id", email = email))
         }
 
-        override suspend fun signInWithEmail(email: String, password: String): Result<com.carryzonemap.app.domain.model.User> {
+        override suspend fun signInWithEmail(
+            email: String,
+            password: String,
+        ): Result<com.carryzonemap.app.domain.model.User> {
             return Result.success(com.carryzonemap.app.domain.model.User(id = "test-user-id", email = email))
         }
 

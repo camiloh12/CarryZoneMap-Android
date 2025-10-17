@@ -27,7 +27,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object SupabaseModule {
-
     /**
      * Provides a singleton Supabase client instance.
      *

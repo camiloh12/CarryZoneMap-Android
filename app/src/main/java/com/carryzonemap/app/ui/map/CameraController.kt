@@ -11,7 +11,6 @@ import timber.log.Timber
  * Single Responsibility: Camera management only.
  */
 class CameraController(private val map: MapLibreMap) {
-
     /**
      * Moves camera to the default position (center of US).
      */
@@ -19,8 +18,8 @@ class CameraController(private val map: MapLibreMap) {
         map.moveCamera(
             CameraUpdateFactory.newLatLngZoom(
                 MapConstants.DEFAULT_CAMERA_POSITION,
-                MapConstants.ZOOM_LEVEL_DEFAULT
-            )
+                MapConstants.ZOOM_LEVEL_DEFAULT,
+            ),
         )
         Timber.d("Camera moved to default position")
     }
@@ -32,8 +31,8 @@ class CameraController(private val map: MapLibreMap) {
         map.animateCamera(
             CameraUpdateFactory.newLatLngZoom(
                 LatLng(location.latitude, location.longitude),
-                MapConstants.ZOOM_LEVEL_USER_LOCATION
-            )
+                MapConstants.ZOOM_LEVEL_USER_LOCATION,
+            ),
         )
         Timber.d("Camera animated to user location: ${location.latitude}, ${location.longitude}")
     }
@@ -45,8 +44,8 @@ class CameraController(private val map: MapLibreMap) {
         map.animateCamera(
             CameraUpdateFactory.newLatLngZoom(
                 latLng,
-                MapConstants.ZOOM_LEVEL_USER_LOCATION
-            )
+                MapConstants.ZOOM_LEVEL_USER_LOCATION,
+            ),
         )
         Timber.d("Camera animated to: ${latLng.latitude}, ${latLng.longitude}")
     }

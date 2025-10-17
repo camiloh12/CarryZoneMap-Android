@@ -10,6 +10,8 @@ data class Poi(
     val name: String,
     val latitude: Double,
     val longitude: Double,
-    val type: String, // e.g., "restaurant", "bar", "shop", "cafe"
-    val tags: Map<String, String> = emptyMap() // Additional OSM tags
+    // e.g., "restaurant", "bar", "shop", "cafe"
+    val type: String,
+    // Additional OSM tags
+    val tags: Map<String, String> = emptyMap(),
 )

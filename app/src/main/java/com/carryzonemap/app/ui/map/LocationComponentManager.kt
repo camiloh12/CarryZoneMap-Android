@@ -12,7 +12,6 @@ import timber.log.Timber
  * Single Responsibility: Location component configuration.
  */
 class LocationComponentManager {
-
     /**
      * Enables the MapLibre location component to display the user's current location as a blue dot.
      * Also enables automatic tracking of the user's location as they move.
@@ -23,13 +22,14 @@ class LocationComponentManager {
     fun enableLocationComponent(
         context: Context,
         map: MapLibreMap,
-        style: Style
+        style: Style,
     ) {
         val locationComponent = map.locationComponent
-        val activationOptions = LocationComponentActivationOptions
-            .builder(context, style)
-            .useDefaultLocationEngine(true)
-            .build()
+        val activationOptions =
+            LocationComponentActivationOptions
+                .builder(context, style)
+                .useDefaultLocationEngine(true)
+                .build()
 
         locationComponent.activateLocationComponent(activationOptions)
         locationComponent.isLocationComponentEnabled = true

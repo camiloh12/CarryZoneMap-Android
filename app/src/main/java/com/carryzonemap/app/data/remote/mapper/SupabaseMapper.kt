@@ -17,7 +17,6 @@ import java.time.format.DateTimeFormatter
  * - Nested structures (DTO ↔ Pin + Location + PinMetadata)
  */
 object SupabaseMapper {
-
     /**
      * Converts a SupabasePinDto to a domain Pin model.
      */
@@ -27,14 +26,15 @@ object SupabaseMapper {
             name = name,
             location = Location.fromLngLat(longitude, latitude),
             status = PinStatus.fromColorCode(status),
-            metadata = PinMetadata(
-                photoUri = photoUri,
-                notes = notes,
-                votes = votes,
-                createdBy = createdBy,
-                createdAt = parseTimestamp(createdAt),
-                lastModified = parseTimestamp(lastModified),
-            ),
+            metadata =
+                PinMetadata(
+                    photoUri = photoUri,
+                    notes = notes,
+                    votes = votes,
+                    createdBy = createdBy,
+                    createdAt = parseTimestamp(createdAt),
+                    lastModified = parseTimestamp(lastModified),
+                ),
         )
     }
 

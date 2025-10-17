@@ -64,13 +64,14 @@ fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
     val featureClickHandler = remember { FeatureClickHandler(viewModel) }
 
     // Location permission handling
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            viewModel.onLocationPermissionResult(isGranted)
-            isMapReady = true
-        }
-    )
+    val locationPermissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission(),
+            onResult = { isGranted ->
+                viewModel.onLocationPermissionResult(isGranted)
+                isMapReady = true
+            },
+        )
 
     // Request location permission on first composition
     LaunchedEffect(Unit) {
@@ -118,20 +119,21 @@ fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
             RecenterLocationButton(
                 isVisible = isMapReady && uiState.currentLocation != null,
                 currentLocation = uiState.currentLocation,
-                map = mapLibreMap
+                map = mapLibreMap,
             )
         },
         snackbarHost = {
             MapErrorSnackbar(
                 error = uiState.error,
-                onDismiss = { viewModel.clearError() }
+                onDismiss = { viewModel.clearError() },
             )
-        }
+        },
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
         ) {
             if (isMapReady) {
                 MapViewContainer(
@@ -151,10 +153,10 @@ fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
                             mapLayerManager = mapLayerManager,
                             locationComponentManager = locationComponentManager,
                             featureClickHandler = featureClickHandler,
-                            cameraController = cameraController
+                            cameraController = cameraController,
                         )
                     },
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 )
             } else {
                 LoadingIndicator()
@@ -166,7 +168,7 @@ fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
                 onStatusSelected = { status -> viewModel.onDialogStatusSelected(status) },
                 onConfirm = { viewModel.confirmPinDialog() },
                 onDelete = { viewModel.deletePinFromDialog() },
-                onDismiss = { viewModel.dismissPinDialog() }
+                onDismiss = { viewModel.dismissPinDialog() },
             )
         }
     }
@@ -184,10 +186,10 @@ private fun MapTopBar(onSignOut: () -> Unit) {
             IconButton(onClick = onSignOut) {
                 Icon(
                     Icons.AutoMirrored.Filled.Logout,
-                    contentDescription = MapConstants.ContentDescriptions.SIGN_OUT
+                    contentDescription = MapConstants.ContentDescriptions.SIGN_OUT,
                 )
             }
-        }
+        },
     )
 }
 
@@ -198,18 +200,18 @@ private fun MapTopBar(onSignOut: () -> Unit) {
 private fun RecenterLocationButton(
     isVisible: Boolean,
     currentLocation: com.carryzonemap.app.domain.model.Location?,
-    map: MapLibreMap?
+    map: MapLibreMap?,
 ) {
     if (isVisible && currentLocation != null && map != null) {
         FloatingActionButton(
             onClick = {
                 val cameraController = CameraController(map)
                 cameraController.animateToUserLocation(currentLocation)
-            }
+            },
         ) {
             Icon(
                 Icons.Filled.MyLocation,
-                contentDescription = MapConstants.ContentDescriptions.RECENTER_LOCATION
+                contentDescription = MapConstants.ContentDescriptions.RECENTER_LOCATION,
             )
         }
     }
@@ -219,14 +221,17 @@ private fun RecenterLocationButton(
  * Error snackbar.
  */
 @Composable
-private fun MapErrorSnackbar(error: String?, onDismiss: () -> Unit) {
+private fun MapErrorSnackbar(
+    error: String?,
+    onDismiss: () -> Unit,
+) {
     error?.let {
         Snackbar(
             action = {
                 TextButton(onClick = onDismiss) {
                     Text(MapConstants.ContentDescriptions.DISMISS_ERROR)
                 }
-            }
+            },
         ) {
             Text(it)
         }
@@ -240,7 +245,7 @@ private fun MapErrorSnackbar(error: String?, onDismiss: () -> Unit) {
 private fun LoadingIndicator() {
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         CircularProgressIndicator()
     }
@@ -252,7 +257,7 @@ private fun LoadingIndicator() {
 @Composable
 private fun MapViewContainer(
     onMapReady: (android.content.Context, MapLibreMap, Style) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     AndroidView(
         factory = { ctx ->
@@ -267,7 +272,7 @@ private fun MapViewContainer(
             }
         },
         modifier = modifier,
-        update = { /* Map updates handled via LaunchedEffect */ }
+        update = { /* Map updates handled via LaunchedEffect */ },
     )
 }
 
@@ -285,7 +290,7 @@ private fun initializeMap(
     mapLayerManager: MapLayerManager,
     locationComponentManager: LocationComponentManager,
     featureClickHandler: FeatureClickHandler,
-    cameraController: CameraController
+    cameraController: CameraController,
 ) {
     // Add pin layer
     val features = uiState.pins.toFeatures()
@@ -319,12 +324,15 @@ private fun initializeMap(
 /**
  * Fetches POIs for the current map viewport.
  */
-private fun fetchPoisForCurrentViewport(map: MapLibreMap, viewModel: MapViewModel) {
+private fun fetchPoisForCurrentViewport(
+    map: MapLibreMap,
+    viewModel: MapViewModel,
+) {
     val bounds = map.projection.visibleRegion.latLngBounds
     viewModel.fetchPoisInViewport(
         south = bounds.latitudeSouth,
         west = bounds.longitudeWest,
         north = bounds.latitudeNorth,
-        east = bounds.longitudeEast
+        east = bounds.longitudeEast,
     )
 }
