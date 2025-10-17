@@ -18,6 +18,8 @@ import javax.inject.Singleton
  *
  * The Overpass API allows querying OSM data by geographic bounds and tags.
  * This is completely free and open-source.
+ *
+ * Implements caching to handle Overpass API throttling and errors gracefully.
  */
 @Singleton
 class OverpassDataSource @Inject constructor(
@@ -28,8 +30,33 @@ class OverpassDataSource @Inject constructor(
     // Overpass API endpoint
     private val overpassUrl = "https://overpass-api.de/api/interpreter"
 
+    // Cache for POIs to handle API throttling/errors
+    // Key: viewport bounds string, Value: cached POI data with timestamp
+    private val poiCache = mutableMapOf<String, CachedPois>()
+
+    // Cache duration: 30 minutes
+    // Balances freshness with resilience to API errors
+    private val cacheDurationMs = 30 * 60 * 1000L // 30 minutes
+
+    /**
+     * Cached POI data with timestamp.
+     */
+    private data class CachedPois(
+        val pois: List<Poi>,
+        val timestamp: Long = System.currentTimeMillis()
+    ) {
+        fun isExpired(now: Long = System.currentTimeMillis()): Boolean {
+            return (now - timestamp) > 30 * 60 * 1000L // 30 minutes
+        }
+    }
+
     /**
      * Fetches POIs within a bounding box.
+     *
+     * Uses caching to handle Overpass API throttling and errors:
+     * - Fresh data (< 30 min): Returns from cache
+     * - Stale data or no cache: Fetches from API
+     * - API failure: Returns cached data if available
      *
      * @param south Southern latitude bound
      * @param west Western longitude bound
@@ -43,6 +70,20 @@ class OverpassDataSource @Inject constructor(
         north: Double,
         east: Double
     ): Result<List<Poi>> {
+        // Create cache key from bounds (rounded to 3 decimals to group nearby requests)
+        val cacheKey = createCacheKey(south, west, north, east)
+
+        // Check cache first
+        val cachedData = poiCache[cacheKey]
+        val now = System.currentTimeMillis()
+
+        // Return cached data if it's still fresh
+        if (cachedData != null && !cachedData.isExpired(now)) {
+            Timber.d("Returning ${cachedData.pois.size} POIs from cache (age: ${(now - cachedData.timestamp) / 1000}s)")
+            return Result.success(cachedData.pois)
+        }
+
+        // Try to fetch fresh data from API
         return try {
             // Build Overpass QL query
             // Fetches shops, restaurants, bars, cafes, pubs, and other businesses
@@ -65,21 +106,69 @@ class OverpassDataSource @Inject constructor(
 
             val responseText = response.bodyAsText()
 
-            // Check if response is XML (error message)
+            // Check if response is XML (error message - API throttled/overloaded)
             if (responseText.trimStart().startsWith("<?xml") || responseText.trimStart().startsWith("<")) {
-                Timber.w("Overpass API returned XML instead of JSON. Response: ${responseText.take(200)}...")
-                Timber.w("This usually means the API is overloaded or rate-limited. Returning empty POI list.")
+                Timber.w("Overpass API returned XML instead of JSON (throttled/overloaded)")
+                Timber.w("Response: ${responseText.take(200)}...")
+
+                // Return cached data if available, even if expired
+                if (cachedData != null) {
+                    Timber.i("Returning ${cachedData.pois.size} expired cached POIs due to API error")
+                    return Result.success(cachedData.pois)
+                }
+
+                Timber.w("No cached POIs available, returning empty list")
                 return Result.success(emptyList())
             }
 
             val pois = parseOverpassResponse(responseText)
 
-            Timber.d("Fetched ${pois.size} POIs from Overpass API")
+            // Update cache with fresh data
+            poiCache[cacheKey] = CachedPois(pois, now)
+            cleanupExpiredCache()
+
+            Timber.d("Fetched ${pois.size} POIs from Overpass API and cached them")
             Result.success(pois)
 
         } catch (e: Exception) {
             Timber.e(e, "Failed to fetch POIs from Overpass API")
+
+            // Return cached data if available, even if expired
+            if (cachedData != null) {
+                Timber.i("Returning ${cachedData.pois.size} cached POIs due to API error")
+                return Result.success(cachedData.pois)
+            }
+
+            // No cache available, return failure
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Creates a cache key from bounding box coordinates.
+     * Rounds to 3 decimal places to group nearby viewport requests.
+     */
+    private fun createCacheKey(south: Double, west: Double, north: Double, east: Double): String {
+        val roundedSouth = "%.3f".format(south)
+        val roundedWest = "%.3f".format(west)
+        val roundedNorth = "%.3f".format(north)
+        val roundedEast = "%.3f".format(east)
+        return "$roundedSouth,$roundedWest,$roundedNorth,$roundedEast"
+    }
+
+    /**
+     * Removes expired cache entries to prevent memory bloat.
+     * Only keeps the 20 most recent cache entries.
+     */
+    private fun cleanupExpiredCache() {
+        if (poiCache.size > 20) {
+            // Remove oldest entries, keeping only the 20 most recent
+            val sortedEntries = poiCache.entries.sortedByDescending { it.value.timestamp }
+            poiCache.clear()
+            sortedEntries.take(20).forEach { (key, value) ->
+                poiCache[key] = value
+            }
+            Timber.d("Cleaned up POI cache, kept 20 most recent entries")
         }
     }
 

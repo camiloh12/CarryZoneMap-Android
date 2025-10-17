@@ -76,7 +76,9 @@ Presentation (ui/) → Domain (domain/) → Data (data/)
 
 **Domain Layer** (`domain/`):
 - **Pure Kotlin** business logic - no Android framework imports
-- `model/`: Core entities (Pin, User, Location, PinStatus, PinMetadata)
+- `model/`: Core entities (Pin, User, Location, PinStatus, PinMetadata, Poi)
+  - `Pin`: Now includes `name` field for POI (Point of Interest) association
+  - `Poi`: Represents points of interest from OpenStreetMap
 - `repository/`: Repository interfaces (PinRepository, AuthRepository)
 - `mapper/`: Domain ↔ MapLibre Feature conversions
 
@@ -89,6 +91,7 @@ Presentation (ui/) → Domain (domain/) → Data (data/)
   - `SupabasePinDto`: Data transfer object for Supabase API
   - `SupabaseMapper`: DTO ↔ Domain conversions
   - `SupabasePinDataSource`: Remote CRUD + real-time subscriptions
+  - `OverpassDataSource`: Fetches POIs from OpenStreetMap Overpass API with caching
 - `sync/`: Offline-first sync infrastructure
   - `SyncManager`: Orchestrates upload/download/conflict resolution
   - `SyncWorker`: Background periodic sync with WorkManager
@@ -125,22 +128,34 @@ Presentation (ui/) → Domain (domain/) → Data (data/)
 
 ### Data Flow Pattern
 
-**Creating a Pin (dialog-based flow):**
-1. User long-presses → `MapScreen` calls `viewModel.showCreatePinDialog(lng, lat)`
-2. `MapViewModel` updates `MapUiState` with `PinDialogState.Creating(location, selectedStatus)`
-3. `PinDialog` renders with status picker (green/yellow/red options)
-4. User selects status → `viewModel.onDialogStatusSelected(status)`
-5. User taps "Create" → `viewModel.confirmPinDialog()`
-6. `MapViewModel` creates domain `Pin` model with selected status
-7. `MapViewModel` calls `pinRepository.addPin(pin)` (suspend function)
-8. `PinRepositoryImpl` maps Pin → PinEntity via `EntityMapper`
-9. Repository calls `pinDao.insertPin(entity)` (Room)
-10. Room emits new data via `Flow<List<PinEntity>>`
-11. Repository maps entities → domain models via `EntityMapper`
-12. `MapViewModel` collects Flow, updates `MapUiState` with new pins
-13. `MapScreen` collects StateFlow, recomposes with new pins
-14. `MapScreen` maps domain Pins → MapLibre Features via `PinMapper`
-15. `FeatureLayerManager` updates map layer
+**Creating a Pin (POI-based dialog flow):**
+1. User clicks on POI label (Overpass or MapTiler) → `MapScreen` queries features at click point
+2. `MapScreen` extracts POI name and calls `viewModel.showCreatePinDialog(name, lng, lat)`
+3. `MapViewModel` updates `MapUiState` with `PinDialogState.Creating(name, location, selectedStatus)`
+4. `PinDialog` renders with POI name header and status picker (green/yellow/red options)
+5. User selects status → `viewModel.onDialogStatusSelected(status)`
+6. User taps "Create" → `viewModel.confirmPinDialog()`
+7. `MapViewModel` creates domain `Pin` model with POI name and selected status
+8. `MapViewModel` calls `pinRepository.addPin(pin)` (suspend function)
+9. `PinRepositoryImpl` maps Pin → PinEntity via `EntityMapper`
+10. Repository calls `pinDao.insertPin(entity)` (Room)
+11. Room emits new data via `Flow<List<PinEntity>>`
+12. Repository maps entities → domain models via `EntityMapper`
+13. `MapViewModel` collects Flow, updates `MapUiState` with new pins
+14. `MapScreen` collects StateFlow, recomposes with new pins
+15. `MapScreen` maps domain Pins → MapLibre Features via `PinMapper`
+16. `FeatureLayerManager` updates map layer
+
+**POI Fetching and Caching:**
+1. Camera movement → `MapScreen.fetchPoisForCurrentViewport()` called
+2. `MapViewModel.fetchPoisInViewport(bounds)` → `OverpassDataSource.fetchPoisInBounds()`
+3. `OverpassDataSource` checks cache (key: rounded viewport bounds)
+4. If fresh cache (< 30 min) → return cached POIs immediately
+5. If stale/no cache → fetch from Overpass API
+6. On API success → update cache, return fresh POIs
+7. On API failure/throttle → return cached POIs (even if expired)
+8. POIs stored in `MapUiState.pois` → rendered as labels on map
+9. Cache cleanup: keeps 20 most recent viewports to prevent memory bloat
 
 **Editing a Pin (dialog-based flow):**
 1. User taps pin → `MapScreen` calls `viewModel.showEditPinDialog(pinId)`
@@ -152,7 +167,11 @@ Presentation (ui/) → Domain (domain/) → Data (data/)
 7. OR user taps "Delete" → `viewModel.deletePinFromDialog()` → `pinRepository.deletePin(pin)`
 8. Database updates → Flow emission → UI recomposition (same as steps 10-15 above)
 
-**Key Insight**: Dialog-based flow provides explicit user control over pin states, separating interaction (dialog) from persistence (repository). Data flows: UI → ViewModel → Dialog State → User Selection → Repository → Database → Flow → ViewModel → StateFlow → UI
+**Key Insights**:
+- **POI-based creation**: Pins can only be created by clicking on POI labels (prevents arbitrary pin placement)
+- **Dialog-based flow**: Provides explicit user control over pin states
+- **POI caching**: Handles Overpass API throttling gracefully, POI labels persist for 30 minutes
+- Data flows: POI Click → ViewModel → Dialog State → User Selection → Repository → Database → Flow → ViewModel → StateFlow → UI
 
 **Offline-First Sync Flow (Hybrid Architecture):**
 1. User creates/updates/deletes pin → `ViewModel` calls `PinRepository` operation
@@ -187,26 +206,31 @@ Presentation (ui/) → Domain (domain/) → Data (data/)
 - **Error handling**: Errors stored in `MapUiState.error`, displayed via Snackbar
 - **Dialog state**: `PinDialogState` (sealed class) tracks creation/editing dialog
   - `Hidden`: No dialog shown
-  - `Creating(location, selectedStatus)`: Creating new pin
+  - `Creating(name, location, selectedStatus)`: Creating new pin for a POI
   - `Editing(pin, selectedStatus)`: Editing existing pin
+- **POI state**: POIs fetched from Overpass API, cached for 30 minutes, displayed as map labels
 
 ### Mappers
 
-Four mapper objects handle conversions between layers:
+Three mapper objects handle conversions between layers:
 
 1. **PinMapper** (domain/mapper): Domain Pin ↔ MapLibre Feature
+   - Includes `name` property for POI association
 2. **EntityMapper** (data/mapper): Domain Pin ↔ Room PinEntity
+   - Maps `name` field bidirectionally
 3. **SupabaseMapper** (data/remote/mapper): Domain Pin ↔ SupabasePinDto
+   - Maps `name` field for cloud sync
 
 These are object singletons with extension functions for clean syntax.
 
 When adding new fields to Pin:
-1. Add to domain `Pin` model
-2. Add to `PinEntity` (Room database table)
-3. Add to `SupabasePinDto` (remote API DTO)
+1. Add to domain `Pin` model (domain/model/Pin.kt)
+2. Add to `PinEntity` (data/local/entity/PinEntity.kt)
+3. Add to `SupabasePinDto` (data/remote/dto/SupabasePinDto.kt)
 4. Update all three mappers (PinMapper, EntityMapper, SupabaseMapper)
-5. Create Room migration if schema changes
-6. Update Supabase migration SQL if remote schema changes
+5. Create Room migration if schema changes (DatabaseModule.kt)
+6. Create Supabase migration SQL (supabase/migrations/)
+7. Update all affected tests to include the new field
 
 ## Configuration
 
@@ -244,14 +268,15 @@ SUPABASE_ANON_KEY=your_supabase_anon_key_here
 
 ### Room Database
 - Database name: `carry_zone_db`
-- **Current version: 3** (fixed migration consistency)
+- **Current version: 4** (added POI name support)
 - Migrations:
   - **v1 → v2**: Added `sync_queue` table with index on `pin_id`, added `createdBy` field to pins
   - **v2 → v3**: No-op migration to force schema consistency for incomplete v2 databases
+  - **v3 → v4**: Added `name` column to pins table for POI names
   - Migrations defined in `DatabaseModule.kt`
 - `exportSchema = false` (should be enabled with proper directory in production)
 - Tables:
-  - `pins`: Pin data with metadata and timestamps
+  - `pins`: Pin data with POI name, metadata, and timestamps
   - `sync_queue`: Pending sync operations (Create/Update/Delete)
 
 ## Adding New Features

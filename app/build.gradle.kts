@@ -140,6 +140,9 @@ dependencies {
     testImplementation("androidx.arch.core:core-testing:2.2.0")
     testImplementation("org.robolectric:robolectric:4.13") // Android framework for unit tests
     testImplementation("androidx.test:core:1.6.1") // For ApplicationProvider
+    testImplementation("io.ktor:ktor-client-mock:3.0.1") // MockEngine for testing HTTP clients
+    testImplementation("io.ktor:ktor-client-content-negotiation:3.0.1") // For JSON serialization in tests
+    testImplementation("io.ktor:ktor-serialization-kotlinx-json:3.0.1") // JSON serialization
 
     // Instrumentation Testing
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
