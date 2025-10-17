@@ -16,6 +16,7 @@ object EntityMapper {
     fun Pin.toEntity(): PinEntity {
         return PinEntity(
             id = id,
+            name = name,
             longitude = location.longitude,
             latitude = location.latitude,
             status = status.colorCode,
@@ -34,6 +35,7 @@ object EntityMapper {
     fun PinEntity.toDomain(): Pin {
         return Pin(
             id = id,
+            name = name,
             location =
                 Location(
                     latitude = latitude,

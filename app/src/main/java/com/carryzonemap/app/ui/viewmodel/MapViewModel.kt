@@ -177,12 +177,13 @@ class MapViewModel
          * Shows the dialog to create a new pin at the specified location.
          */
         fun showCreatePinDialog(
+            name: String,
             longitude: Double,
             latitude: Double,
         ) {
             val location = Location.fromLngLat(longitude, latitude)
             _uiState.update {
-                it.copy(pinDialogState = PinDialogState.Creating(location))
+                it.copy(pinDialogState = PinDialogState.Creating(name, location))
             }
         }
 
@@ -229,6 +230,7 @@ class MapViewModel
 
                             val pin =
                                 Pin(
+                                    name = dialogState.name,
                                     location =
                                         Location.fromLngLat(
                                             longitude = dialogState.location.longitude,

@@ -17,6 +17,7 @@ class EntityMapperTest {
     private val testPin =
         Pin(
             id = "test-123",
+            name = "Test POI",
             location = Location(latitude = 40.7128, longitude = -74.0060),
             status = PinStatus.UNCERTAIN,
             metadata =
@@ -33,6 +34,7 @@ class EntityMapperTest {
     private val testEntity =
         PinEntity(
             id = "test-123",
+            name = "Test POI",
             longitude = -74.0060,
             latitude = 40.7128,
             // UNCERTAIN
@@ -106,6 +108,7 @@ class EntityMapperTest {
         val pinWithNulls =
             Pin(
                 id = "null-test",
+                name = "Test POI",
                 location = Location(0.0, 0.0),
                 status = PinStatus.ALLOWED,
                 metadata = PinMetadata(),
@@ -124,6 +127,7 @@ class EntityMapperTest {
         val entityWithNulls =
             PinEntity(
                 id = "null-test",
+                name = "Test POI",
                 longitude = 0.0,
                 latitude = 0.0,
                 status = 0,

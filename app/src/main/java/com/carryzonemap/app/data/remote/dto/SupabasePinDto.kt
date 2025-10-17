@@ -10,6 +10,7 @@ import kotlinx.serialization.Serializable
  * PostgreSQL database. Field names use snake_case to match the database schema.
  *
  * @property id Unique identifier (UUID)
+ * @property name Name of the POI (Point of Interest) this pin belongs to
  * @property longitude Longitude coordinate
  * @property latitude Latitude coordinate
  * @property status Status code (0=ALLOWED, 1=UNCERTAIN, 2=NO_GUN)
@@ -23,6 +24,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SupabasePinDto(
     val id: String,
+    val name: String,
     val longitude: Double,
     val latitude: Double,
     val status: Int,

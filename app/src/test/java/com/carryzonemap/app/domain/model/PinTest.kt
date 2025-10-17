@@ -10,6 +10,7 @@ class PinTest {
     private val testPin =
         Pin(
             id = "test-id",
+            name = "Test POI",
             location = testLocation,
             status = PinStatus.ALLOWED,
             metadata = PinMetadata(createdAt = 1000L, lastModified = 1000L),
@@ -17,7 +18,7 @@ class PinTest {
 
     @Test
     fun `creates pin with fromLngLat factory method`() {
-        val pin = Pin.fromLngLat(longitude = -74.0060, latitude = 40.7128)
+        val pin = Pin.fromLngLat(name = "Test POI", longitude = -74.0060, latitude = 40.7128)
 
         assertEquals(40.7128, pin.location.latitude, 0.0001)
         assertEquals(-74.0060, pin.location.longitude, 0.0001)
@@ -28,6 +29,7 @@ class PinTest {
     fun `fromLngLat creates pin with custom status`() {
         val pin =
             Pin.fromLngLat(
+                name = "Test POI",
                 longitude = -74.0060,
                 latitude = 40.7128,
                 status = PinStatus.NO_GUN,
@@ -87,15 +89,15 @@ class PinTest {
 
     @Test
     fun `pin generates unique ids by default`() {
-        val pin1 = Pin.fromLngLat(-74.0, 40.7)
-        val pin2 = Pin.fromLngLat(-74.0, 40.7)
+        val pin1 = Pin.fromLngLat(name = "Test POI", longitude = -74.0, latitude = 40.7)
+        val pin2 = Pin.fromLngLat(name = "Test POI", longitude = -74.0, latitude = 40.7)
 
         assertNotEquals(pin1.id, pin2.id)
     }
 
     @Test
     fun `pin has default metadata when not provided`() {
-        val pin = Pin(location = testLocation)
+        val pin = Pin(name = "Test POI", location = testLocation)
 
         assertEquals(
             PinMetadata(),

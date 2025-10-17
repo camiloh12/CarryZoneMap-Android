@@ -33,6 +33,7 @@ class PinRepositoryImplTest {
     private val testPin =
         Pin(
             id = "test-123",
+            name = "Test POI",
             location = Location(latitude = 40.7128, longitude = -74.0060),
             status = PinStatus.ALLOWED,
         )
