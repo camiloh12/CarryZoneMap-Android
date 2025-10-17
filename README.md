@@ -53,6 +53,20 @@ Offline-First: Write to Room (instant UI) → Queue for sync → Upload when onl
 - **Location**: Google Play Services Location
 - **Networking**: Ktor Client (for Supabase)
 
+### Design Patterns
+
+**MapScreen Architecture** (Refactored Oct 2025):
+- **Chain of Responsibility**: Click handling with `FeatureClickHandler`
+  - `ExistingPinDetector`: Handles clicks on user pins
+  - `OverpassPoiDetector`: Handles Overpass POI layer clicks
+  - `MapTilerPoiDetector`: Handles base map POI clicks
+- **Single Responsibility**: Focused helper classes for map operations
+  - `CameraController`: Camera positioning only
+  - `MapLayerManager`: POI layer management only
+  - `LocationComponentManager`: Location setup only
+- **DRY Principle**: All constants centralized in `MapConstants`
+- **Open/Closed**: Extensible click detection without modifying existing code
+
 ## ✨ Features
 
 ### Current Features
@@ -96,11 +110,14 @@ Offline-First: Write to Room (instant UI) → Queue for sync → Upload when onl
 - ✅ **Dual-database system**: Room (local) + Supabase (remote)
 - ✅ **Conflict resolution**: Last-write-wins with timestamps
 - ✅ **Network monitoring**: Reactive connectivity tracking
+- ✅ **SOLID principles**: Single Responsibility, Open/Closed applied throughout
+- ✅ **Design patterns**: Chain of Responsibility, Strategy, Factory
+- ✅ **DRY principle**: Centralized constants, no code duplication
 - ✅ Hilt dependency injection with WorkManager integration
 - ✅ Room database with type-safe DAOs and migrations
 - ✅ Supabase integration (Auth, Postgrest, Realtime, Storage)
 - ✅ Proper error handling and loading states
-- ✅ Comprehensive testing (81 unit tests, 100% pass rate)
+- ✅ Comprehensive testing (98 unit tests, 100% pass rate)
 - ✅ Code quality tools (Detekt + KtLint)
 
 ## 🚀 Getting Started
@@ -228,6 +245,12 @@ app/src/main/java/com/carryzonemap/app/
 │   │   └── AuthViewModel.kt         # Auth state management
 │   ├── components/
 │   │   └── PinDialog.kt             # Pin creation/editing dialog
+│   ├── map/                         # Map-specific helpers (Oct 2025 refactor)
+│   │   ├── MapConstants.kt          # Centralized constants (zoom, colors, etc.)
+│   │   ├── FeatureClickHandler.kt   # Chain of Responsibility for clicks
+│   │   ├── CameraController.kt      # Camera positioning logic
+│   │   ├── MapLayerManager.kt       # POI layer management
+│   │   └── LocationComponentManager.kt # Location component setup
 │   ├── state/
 │   │   ├── MapUiState.kt            # Immutable UI state
 │   │   └── PinDialogState.kt        # Dialog state management
@@ -585,4 +608,4 @@ Contributions are welcome! Please follow the existing architecture patterns:
 
 **Built with ❤️ using modern Android architecture + cloud sync**
 
-*Last Updated: 2025-10-11*
+*Last Updated: 2025-10-17 - MapScreen refactoring with SOLID/DRY principles*
