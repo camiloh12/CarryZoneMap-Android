@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -28,8 +29,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.carryzonemap.app.BuildConfig
 import com.carryzonemap.app.domain.mapper.PinMapper.toFeatures
 import com.carryzonemap.app.map.FeatureLayerManager
@@ -43,6 +47,7 @@ import com.carryzonemap.app.ui.viewmodel.MapViewModel
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import timber.log.Timber
 
 /**
  * Main map screen composable.
@@ -137,7 +142,9 @@ fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
         ) {
             if (isMapReady) {
                 MapViewContainer(
+                    viewModel = viewModel,
                     onMapReady = { context, map, style ->
+                        Timber.d("onMapReady callback invoked - map and style are ready")
                         mapLibreMap = map
                         currentStyle = style
 
@@ -256,17 +263,53 @@ private fun LoadingIndicator() {
  */
 @Composable
 private fun MapViewContainer(
+    viewModel: MapViewModel,
     onMapReady: (android.content.Context, MapLibreMap, Style) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var mapView by remember { mutableStateOf<MapView?>(null) }
+
     AndroidView(
         factory = { ctx ->
+            Timber.d("MapView factory called - creating new MapView")
             MapView(ctx).apply {
+                mapView = this
+                Timber.d("MapView created, calling onCreate")
                 onCreate(null)
+                onStart()
+                onResume()
+
+                Timber.d("Calling getMapAsync")
                 getMapAsync { map ->
+                    Timber.d("getMapAsync callback received - MapLibreMap ready")
                     val styleUrl = "${MapConstants.MAPTILER_BASE_URL}${BuildConfig.MAPTILER_API_KEY}"
-                    map.setStyle(styleUrl) { style ->
-                        onMapReady(ctx, map, style)
+                    Timber.d("Loading map style from: $styleUrl")
+
+                    var styleLoaded = false
+
+                    // Set a timeout to detect style loading failures
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        if (!styleLoaded) {
+                            Timber.e("Style loading timeout after 15 seconds")
+                            viewModel.setError("Failed to load map: Connection timeout. Please check your network connection.")
+                        }
+                    }, 15000) // 15 second timeout
+
+                    try {
+                        map.setStyle(styleUrl) { style ->
+                            if (!styleLoaded) {
+                                styleLoaded = true
+                                Timber.d("Map style loaded successfully!")
+                                onMapReady(ctx, map, style)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Timber.e(e, "Exception while setting map style")
+                        if (!styleLoaded) {
+                            styleLoaded = true
+                            viewModel.setError("Failed to load map: ${e.message ?: "Unknown error"}. Please try again.")
+                        }
                     }
                 }
             }
@@ -274,6 +317,44 @@ private fun MapViewContainer(
         modifier = modifier,
         update = { /* Map updates handled via LaunchedEffect */ },
     )
+
+    // Properly handle lifecycle events
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            mapView?.let { view ->
+                when (event) {
+                    Lifecycle.Event.ON_START -> {
+                        Timber.d("Lifecycle: ON_START")
+                        view.onStart()
+                    }
+                    Lifecycle.Event.ON_RESUME -> {
+                        Timber.d("Lifecycle: ON_RESUME")
+                        view.onResume()
+                    }
+                    Lifecycle.Event.ON_PAUSE -> {
+                        Timber.d("Lifecycle: ON_PAUSE")
+                        view.onPause()
+                    }
+                    Lifecycle.Event.ON_STOP -> {
+                        Timber.d("Lifecycle: ON_STOP")
+                        view.onStop()
+                    }
+                    Lifecycle.Event.ON_DESTROY -> {
+                        Timber.d("Lifecycle: ON_DESTROY")
+                        view.onDestroy()
+                    }
+                    else -> {}
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            Timber.d("MapViewContainer disposing")
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            mapView?.onDestroy()
+        }
+    }
 }
 
 /**
@@ -292,33 +373,46 @@ private fun initializeMap(
     featureClickHandler: FeatureClickHandler,
     cameraController: CameraController,
 ) {
+    Timber.d("initializeMap called - setting up map components")
+
     // Add pin layer
+    Timber.d("Adding pin layer with ${uiState.pins.size} pins")
     val features = uiState.pins.toFeatures()
     featureLayerManager.addSourceAndLayer(style, features)
 
     // Add POI layer
+    Timber.d("Adding POI layer")
     mapLayerManager.addPoiLayer(style)
 
     // Enable location component (blue dot) if permission granted
     if (uiState.hasLocationPermission) {
+        Timber.d("Enabling location component (permission granted)")
         locationComponentManager.enableLocationComponent(context, map, style)
+    } else {
+        Timber.d("Skipping location component (no permission)")
     }
 
     // Set default camera position
+    Timber.d("Setting default camera position")
     cameraController.moveToDefaultPosition()
 
     // Fetch POIs for initial viewport
+    Timber.d("Fetching POIs for initial viewport")
     fetchPoisForCurrentViewport(map, viewModel)
 
     // Fetch POIs when camera moves
     map.addOnCameraIdleListener {
+        Timber.d("Camera idle - fetching POIs for new viewport")
         fetchPoisForCurrentViewport(map, viewModel)
     }
 
     // Set up click handler
     map.addOnMapClickListener { point ->
+        Timber.d("Map clicked at: ${point.latitude}, ${point.longitude}")
         featureClickHandler.handleClick(map, point)
     }
+
+    Timber.d("Map initialization complete!")
 }
 
 /**

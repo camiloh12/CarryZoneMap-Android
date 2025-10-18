@@ -297,6 +297,13 @@ class MapViewModel
         }
 
         /**
+         * Sets an error message to be displayed to the user.
+         */
+        fun setError(message: String) {
+            _uiState.update { it.copy(error = message) }
+        }
+
+        /**
          * Signs out the current user.
          */
         fun signOut() {
