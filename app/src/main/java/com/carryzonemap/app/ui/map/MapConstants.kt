@@ -33,7 +33,7 @@ object MapConstants {
     const val POI_TEXT_ANCHOR = "top"
 
     // MapTiler API
-    const val MAPTILER_BASE_URL = "https://api.maptiler.com/maps/streets-v2/style.json?key="
+    const val MAPTILER_BASE_URL = "https://api.maptiler.com/maps/streets-v4/style.json?key="
 
     // Content Descriptions (for accessibility)
     object ContentDescriptions {
