@@ -30,7 +30,6 @@ class SupabaseAuthRepository
     constructor(
         private val auth: Auth,
     ) : AuthRepository {
-
         // Scope for managing coroutines in this repository
         private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -163,5 +162,4 @@ class SupabaseAuthRepository
                 )
             }
         }
-
     }

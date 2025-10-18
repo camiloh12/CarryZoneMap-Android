@@ -297,6 +297,13 @@ class MapViewModel
         }
 
         /**
+         * Sets an error message to be displayed to the user.
+         */
+        fun setError(message: String) {
+            _uiState.update { it.copy(error = message) }
+        }
+
+        /**
          * Signs out the current user.
          */
         fun signOut() {
@@ -334,9 +341,11 @@ class MapViewModel
             val locationRequest =
                 LocationRequest.Builder(
                     Priority.PRIORITY_HIGH_ACCURACY,
-                    10000L, // Update every 10 seconds
+                    // Update every 10 seconds
+                    10000L,
                 ).apply {
-                    setMinUpdateIntervalMillis(5000L) // But not more frequently than every 5 seconds
+                    // But not more frequently than every 5 seconds
+                    setMinUpdateIntervalMillis(5000L)
                     setWaitForAccurateLocation(false)
                 }.build()
 
@@ -360,7 +369,8 @@ class MapViewModel
             fusedLocationClient.requestLocationUpdates(
                 locationRequest,
                 locationCallback!!,
-                null, // Use main looper
+                // Use main looper
+                null,
             )
         }
 

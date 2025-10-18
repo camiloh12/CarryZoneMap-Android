@@ -6,7 +6,6 @@ import com.carryzonemap.app.data.remote.mapper.SupabaseMapper.toDomainModels
 import com.carryzonemap.app.data.remote.mapper.SupabaseMapper.toSupabaseDto
 import com.carryzonemap.app.domain.model.Pin
 import io.github.jan.supabase.postgrest.Postgrest
-import io.github.jan.supabase.realtime.Realtime
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -20,14 +19,12 @@ import javax.inject.Singleton
  * Provides CRUD operations and real-time subscriptions for pins using Supabase.
  *
  * @property postgrest Supabase Postgrest client for database operations
- * @property realtime Supabase Realtime client for subscriptions
  */
 @Singleton
 class SupabasePinDataSource
     @Inject
     constructor(
         private val postgrest: Postgrest,
-        private val realtime: Realtime,
     ) : RemotePinDataSource {
         companion object {
             private const val TABLE_NAME = "pins"
@@ -154,6 +151,7 @@ class SupabasePinDataSource
             }
         }
 
+        @Suppress("ForbiddenComment") // Planned feature for Phase 7
         override fun subscribeToChanges(): Flow<PinChangeEvent> =
             callbackFlow<PinChangeEvent> {
                 Timber.d("Realtime subscriptions not yet implemented")

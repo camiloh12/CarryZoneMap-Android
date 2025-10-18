@@ -32,7 +32,8 @@ class MainActivity : ComponentActivity() {
         // Initialize MapLibre once before creating any MapView
         MapLibre.getInstance(
             applicationContext,
-            "dummy-api-key", // not used for MapLibre, but required by method
+            // Not used for MapLibre, but required by method signature
+            "dummy-api-key",
             WellKnownTileServer.MapLibre,
         )
 

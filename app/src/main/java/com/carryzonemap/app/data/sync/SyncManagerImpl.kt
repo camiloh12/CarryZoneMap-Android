@@ -145,62 +145,82 @@ class SyncManagerImpl
 
             for (operation in operations) {
                 try {
-                    when (operation.operationType) {
-                        SyncOperation.TYPE_CREATE -> {
-                            val pin = pinDao.getPinById(operation.pinId)?.toDomain()
-                            if (pin != null) {
-                                remoteDataSource.insertPin(pin).getOrThrow()
-                                syncQueueDao.deleteOperation(operation.id)
-                                successCount++
-                                Timber.d("Uploaded CREATE for pin: ${pin.id}")
-                            } else {
-                                // Pin no longer exists locally, remove from queue
-                                syncQueueDao.deleteOperation(operation.id)
-                                Timber.w("Pin ${operation.pinId} not found locally, removing from queue")
-                            }
-                        }
-
-                        SyncOperation.TYPE_UPDATE -> {
-                            val pin = pinDao.getPinById(operation.pinId)?.toDomain()
-                            if (pin != null) {
-                                remoteDataSource.updatePin(pin).getOrThrow()
-                                syncQueueDao.deleteOperation(operation.id)
-                                successCount++
-                                Timber.d("Uploaded UPDATE for pin: ${pin.id}")
-                            } else {
-                                // Pin no longer exists locally, remove from queue
-                                syncQueueDao.deleteOperation(operation.id)
-                                Timber.w("Pin ${operation.pinId} not found locally, removing from queue")
-                            }
-                        }
-
-                        SyncOperation.TYPE_DELETE -> {
-                            remoteDataSource.deletePin(operation.pinId).getOrThrow()
-                            syncQueueDao.deleteOperation(operation.id)
-                            successCount++
-                            Timber.d("Uploaded DELETE for pin: ${operation.pinId}")
-                        }
-                    }
+                    val uploaded = processUploadOperation(operation)
+                    if (uploaded) successCount++
                 } catch (e: Exception) {
-                    Timber.e(e, "Failed to upload operation for pin ${operation.pinId}")
-
-                    // Update retry count
-                    val updatedOperation =
-                        operation.copy(
-                            retryCount = operation.retryCount + 1,
-                            lastError = e.message,
-                        )
-                    syncQueueDao.updateOperation(updatedOperation)
-
-                    // If max retries reached, remove from queue (could also implement exponential backoff)
-                    if (updatedOperation.retryCount >= MAX_RETRIES) {
-                        Timber.w("Max retries reached for pin ${operation.pinId}, removing from queue")
-                        syncQueueDao.deleteOperation(operation.id)
-                    }
+                    handleUploadFailure(operation, e)
                 }
             }
 
             return successCount
+        }
+
+        /**
+         * Process a single upload operation.
+         *
+         * @return true if the operation was successfully uploaded
+         */
+        private suspend fun processUploadOperation(operation: SyncQueueEntity): Boolean {
+            return when (operation.operationType) {
+                SyncOperation.TYPE_CREATE -> uploadCreateOperation(operation)
+                SyncOperation.TYPE_UPDATE -> uploadUpdateOperation(operation)
+                SyncOperation.TYPE_DELETE -> uploadDeleteOperation(operation)
+                else -> false
+            }
+        }
+
+        private suspend fun uploadCreateOperation(operation: SyncQueueEntity): Boolean {
+            val pin = pinDao.getPinById(operation.pinId)?.toDomain()
+            return if (pin != null) {
+                remoteDataSource.insertPin(pin).getOrThrow()
+                syncQueueDao.deleteOperation(operation.id)
+                Timber.d("Uploaded CREATE for pin: ${pin.id}")
+                true
+            } else {
+                syncQueueDao.deleteOperation(operation.id)
+                Timber.w("Pin ${operation.pinId} not found locally, removing from queue")
+                false
+            }
+        }
+
+        private suspend fun uploadUpdateOperation(operation: SyncQueueEntity): Boolean {
+            val pin = pinDao.getPinById(operation.pinId)?.toDomain()
+            return if (pin != null) {
+                remoteDataSource.updatePin(pin).getOrThrow()
+                syncQueueDao.deleteOperation(operation.id)
+                Timber.d("Uploaded UPDATE for pin: ${pin.id}")
+                true
+            } else {
+                syncQueueDao.deleteOperation(operation.id)
+                Timber.w("Pin ${operation.pinId} not found locally, removing from queue")
+                false
+            }
+        }
+
+        private suspend fun uploadDeleteOperation(operation: SyncQueueEntity): Boolean {
+            remoteDataSource.deletePin(operation.pinId).getOrThrow()
+            syncQueueDao.deleteOperation(operation.id)
+            Timber.d("Uploaded DELETE for pin: ${operation.pinId}")
+            return true
+        }
+
+        private suspend fun handleUploadFailure(
+            operation: SyncQueueEntity,
+            error: Exception,
+        ) {
+            Timber.e(error, "Failed to upload operation for pin ${operation.pinId}")
+
+            val updatedOperation =
+                operation.copy(
+                    retryCount = operation.retryCount + 1,
+                    lastError = error.message,
+                )
+            syncQueueDao.updateOperation(updatedOperation)
+
+            if (updatedOperation.retryCount >= MAX_RETRIES) {
+                Timber.w("Max retries reached for pin ${operation.pinId}, removing from queue")
+                syncQueueDao.deleteOperation(operation.id)
+            }
         }
 
         /**
@@ -226,25 +246,8 @@ class SyncManagerImpl
 
             for (remotePin in remotePins) {
                 try {
-                    val localPin = pinDao.getPinById(remotePin.id)?.toDomain()
-
-                    if (localPin == null) {
-                        // Pin doesn't exist locally, insert it
-                        pinDao.insertPin(remotePin.toEntity())
+                    if (mergeRemotePin(remotePin)) {
                         mergedCount++
-                        Timber.d("Inserted new pin from remote: ${remotePin.id}")
-                    } else {
-                        // Pin exists locally, resolve conflict using last-write-wins
-                        if (remotePin.metadata.lastModified > localPin.metadata.lastModified) {
-                            // Remote is newer, update local
-                            pinDao.updatePin(remotePin.toEntity())
-                            mergedCount++
-                            Timber.d("Updated pin from remote (newer): ${remotePin.id}")
-                        } else {
-                            // Local is newer or same, keep local version
-                            // (It should already be in the upload queue if modified)
-                            Timber.d("Kept local pin (newer or same): ${remotePin.id}")
-                        }
                     }
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to merge pin ${remotePin.id}")
@@ -252,6 +255,37 @@ class SyncManagerImpl
             }
 
             return mergedCount
+        }
+
+        /**
+         * Merge a remote pin with local data using last-write-wins conflict resolution.
+         *
+         * @return true if the pin was merged (inserted or updated)
+         */
+        private suspend fun mergeRemotePin(remotePin: Pin): Boolean {
+            val localPin = pinDao.getPinById(remotePin.id)?.toDomain()
+
+            return if (localPin == null) {
+                pinDao.insertPin(remotePin.toEntity())
+                Timber.d("Inserted new pin from remote: ${remotePin.id}")
+                true
+            } else {
+                mergeExistingPin(remotePin, localPin)
+            }
+        }
+
+        private suspend fun mergeExistingPin(
+            remotePin: Pin,
+            localPin: Pin,
+        ): Boolean {
+            return if (remotePin.metadata.lastModified > localPin.metadata.lastModified) {
+                pinDao.updatePin(remotePin.toEntity())
+                Timber.d("Updated pin from remote (newer): ${remotePin.id}")
+                true
+            } else {
+                Timber.d("Kept local pin (newer or same): ${remotePin.id}")
+                false
+            }
         }
 
         override fun startRealtimeSubscription(): Flow<String> =

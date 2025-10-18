@@ -23,10 +23,12 @@ data class SyncQueueEntity(
     val id: Long = 0,
     @ColumnInfo(name = "pin_id")
     val pinId: String,
+    // CREATE, UPDATE, DELETE
     @ColumnInfo(name = "operation_type")
-    val operationType: String, // CREATE, UPDATE, DELETE
+    val operationType: String,
+    // Epoch milliseconds when queued
     @ColumnInfo(name = "timestamp")
-    val timestamp: Long, // Epoch milliseconds when queued
+    val timestamp: Long,
     @ColumnInfo(name = "retry_count")
     val retryCount: Int = 0,
     @ColumnInfo(name = "last_error")

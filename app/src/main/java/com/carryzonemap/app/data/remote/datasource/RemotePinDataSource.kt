@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.Flow
  * implementation decoupled from the specific backend.
  */
 interface RemotePinDataSource {
-
     /**
      * Retrieves all pins from the remote database.
      *

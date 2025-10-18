@@ -45,9 +45,15 @@ object PinMapper {
      * Returns null if the feature cannot be converted (missing required data).
      */
     fun Feature.toPin(): Pin? {
-        val point = geometry() as? Point ?: return null
-        val id = getStringProperty(PROPERTY_FEATURE_ID) ?: return null
-        val name = getStringProperty(PROPERTY_NAME) ?: return null
+        val point = geometry() as? Point
+        val id = getStringProperty(PROPERTY_FEATURE_ID)
+        val name = getStringProperty(PROPERTY_NAME)
+
+        // Validate all required fields
+        if (point == null || id == null || name == null) {
+            return null
+        }
+
         val colorCode = getNumberProperty(PROPERTY_COLOR_STATE)?.toInt() ?: 0
 
         val location =

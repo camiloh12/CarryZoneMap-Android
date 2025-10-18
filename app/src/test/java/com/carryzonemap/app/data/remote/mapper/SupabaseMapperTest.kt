@@ -27,7 +27,6 @@ import java.time.Instant
  * - Null field handling
  */
 class SupabaseMapperTest {
-
     // Test data constants
     private val testId = "test-pin-id-123"
     private val testLongitude = -122.4194
@@ -42,19 +41,21 @@ class SupabaseMapperTest {
     @Test
     fun `toDomain converts SupabasePinDto to Pin correctly`() {
         // Given
-        val dto = SupabasePinDto(
-            id = testId,
-            name = "Test POI",
-            longitude = testLongitude,
-            latitude = testLatitude,
-            status = 0, // ALLOWED
-            photoUri = testPhotoUri,
-            notes = testNotes,
-            votes = testVotes,
-            createdBy = testCreatedBy,
-            createdAt = testTimestamp,
-            lastModified = testTimestamp,
-        )
+        val dto =
+            SupabasePinDto(
+                id = testId,
+                name = "Test POI",
+                longitude = testLongitude,
+                latitude = testLatitude,
+                // ALLOWED
+                status = 0,
+                photoUri = testPhotoUri,
+                notes = testNotes,
+                votes = testVotes,
+                createdBy = testCreatedBy,
+                createdAt = testTimestamp,
+                lastModified = testTimestamp,
+            )
 
         // When
         val pin = dto.toDomain()
@@ -75,11 +76,12 @@ class SupabaseMapperTest {
     @Test
     fun `toDomain handles all status codes correctly`() {
         // Test all PinStatus values
-        val statusCases = listOf(
-            0 to PinStatus.ALLOWED,
-            1 to PinStatus.UNCERTAIN,
-            2 to PinStatus.NO_GUN
-        )
+        val statusCases =
+            listOf(
+                0 to PinStatus.ALLOWED,
+                1 to PinStatus.UNCERTAIN,
+                2 to PinStatus.NO_GUN,
+            )
 
         for ((statusCode, expectedStatus) in statusCases) {
             // Given
@@ -92,7 +94,7 @@ class SupabaseMapperTest {
             assertEquals(
                 "Status code $statusCode should map to $expectedStatus",
                 expectedStatus,
-                pin.status
+                pin.status,
             )
         }
     }
@@ -100,19 +102,20 @@ class SupabaseMapperTest {
     @Test
     fun `toDomain handles null optional fields`() {
         // Given
-        val dto = SupabasePinDto(
-            id = testId,
-            name = "Test POI",
-            longitude = testLongitude,
-            latitude = testLatitude,
-            status = 0,
-            photoUri = null,
-            notes = null,
-            votes = 0,
-            createdBy = null,
-            createdAt = testTimestamp,
-            lastModified = testTimestamp,
-        )
+        val dto =
+            SupabasePinDto(
+                id = testId,
+                name = "Test POI",
+                longitude = testLongitude,
+                latitude = testLatitude,
+                status = 0,
+                photoUri = null,
+                notes = null,
+                votes = 0,
+                createdBy = null,
+                createdAt = testTimestamp,
+                lastModified = testTimestamp,
+            )
 
         // When
         val pin = dto.toDomain()
@@ -127,20 +130,22 @@ class SupabaseMapperTest {
     @Test
     fun `toSupabaseDto converts Pin to SupabasePinDto correctly`() {
         // Given
-        val pin = Pin(
-            id = testId,
-            name = "Test POI",
-            location = Location.fromLngLat(testLongitude, testLatitude),
-            status = PinStatus.UNCERTAIN,
-            metadata = PinMetadata(
-                photoUri = testPhotoUri,
-                notes = testNotes,
-                votes = testVotes,
-                createdBy = testCreatedBy,
-                createdAt = testTimestampMillis,
-                lastModified = testTimestampMillis,
-            ),
-        )
+        val pin =
+            Pin(
+                id = testId,
+                name = "Test POI",
+                location = Location.fromLngLat(testLongitude, testLatitude),
+                status = PinStatus.UNCERTAIN,
+                metadata =
+                    PinMetadata(
+                        photoUri = testPhotoUri,
+                        notes = testNotes,
+                        votes = testVotes,
+                        createdBy = testCreatedBy,
+                        createdAt = testTimestampMillis,
+                        lastModified = testTimestampMillis,
+                    ),
+            )
 
         // When
         val dto = pin.toSupabaseDto()
@@ -163,11 +168,12 @@ class SupabaseMapperTest {
     @Test
     fun `toSupabaseDto handles all PinStatus values correctly`() {
         // Test all PinStatus values
-        val statusCases = listOf(
-            PinStatus.ALLOWED to 0,
-            PinStatus.UNCERTAIN to 1,
-            PinStatus.NO_GUN to 2
-        )
+        val statusCases =
+            listOf(
+                PinStatus.ALLOWED to 0,
+                PinStatus.UNCERTAIN to 1,
+                PinStatus.NO_GUN to 2,
+            )
 
         for ((pinStatus, expectedCode) in statusCases) {
             // Given
@@ -180,7 +186,7 @@ class SupabaseMapperTest {
             assertEquals(
                 "$pinStatus should map to status code $expectedCode",
                 expectedCode,
-                dto.status
+                dto.status,
             )
         }
     }
@@ -188,19 +194,21 @@ class SupabaseMapperTest {
     @Test
     fun `round trip conversion preserves all data`() {
         // Given
-        val originalDto = SupabasePinDto(
-            id = testId,
-            name = "Test POI",
-            longitude = testLongitude,
-            latitude = testLatitude,
-            status = 2, // NO_GUN
-            photoUri = testPhotoUri,
-            notes = testNotes,
-            votes = testVotes,
-            createdBy = testCreatedBy,
-            createdAt = testTimestamp,
-            lastModified = testTimestamp,
-        )
+        val originalDto =
+            SupabasePinDto(
+                id = testId,
+                name = "Test POI",
+                longitude = testLongitude,
+                latitude = testLatitude,
+                // NO_GUN
+                status = 2,
+                photoUri = testPhotoUri,
+                notes = testNotes,
+                votes = testVotes,
+                createdBy = testCreatedBy,
+                createdAt = testTimestamp,
+                lastModified = testTimestamp,
+            )
 
         // When: DTO -> Domain -> DTO
         val pin = originalDto.toDomain()
@@ -220,19 +228,20 @@ class SupabaseMapperTest {
     @Test
     fun `round trip conversion with null fields preserves nulls`() {
         // Given
-        val originalDto = SupabasePinDto(
-            id = testId,
-            name = "Test POI",
-            longitude = testLongitude,
-            latitude = testLatitude,
-            status = 0,
-            photoUri = null,
-            notes = null,
-            votes = 0,
-            createdBy = null,
-            createdAt = testTimestamp,
-            lastModified = testTimestamp,
-        )
+        val originalDto =
+            SupabasePinDto(
+                id = testId,
+                name = "Test POI",
+                longitude = testLongitude,
+                latitude = testLatitude,
+                status = 0,
+                photoUri = null,
+                notes = null,
+                votes = 0,
+                createdBy = null,
+                createdAt = testTimestamp,
+                lastModified = testTimestamp,
+            )
 
         // When: DTO -> Domain -> DTO
         val pin = originalDto.toDomain()
@@ -248,11 +257,12 @@ class SupabaseMapperTest {
     @Test
     fun `toDomainModels converts list of DTOs correctly`() {
         // Given
-        val dtos = listOf(
-            createTestDto(id = "pin-1", status = 0),
-            createTestDto(id = "pin-2", status = 1),
-            createTestDto(id = "pin-3", status = 2),
-        )
+        val dtos =
+            listOf(
+                createTestDto(id = "pin-1", status = 0),
+                createTestDto(id = "pin-2", status = 1),
+                createTestDto(id = "pin-3", status = 2),
+            )
 
         // When
         val pins = dtos.toDomainModels()
@@ -270,11 +280,12 @@ class SupabaseMapperTest {
     @Test
     fun `toSupabaseDtos converts list of Pins correctly`() {
         // Given
-        val pins = listOf(
-            createTestPin(id = "pin-1", status = PinStatus.ALLOWED),
-            createTestPin(id = "pin-2", status = PinStatus.UNCERTAIN),
-            createTestPin(id = "pin-3", status = PinStatus.NO_GUN),
-        )
+        val pins =
+            listOf(
+                createTestPin(id = "pin-1", status = PinStatus.ALLOWED),
+                createTestPin(id = "pin-2", status = PinStatus.UNCERTAIN),
+                createTestPin(id = "pin-3", status = PinStatus.NO_GUN),
+            )
 
         // When
         val dtos = pins.toSupabaseDtos()
@@ -315,11 +326,14 @@ class SupabaseMapperTest {
 
     @Test
     fun `timestamp parsing handles various ISO 8601 formats`() {
-        val timestampFormats = listOf(
-            "2023-10-15T12:30:45.123Z",
-            "2023-10-15T12:30:45.123456Z", // With microseconds
-            "2023-10-15T12:30:45Z", // Without milliseconds
-        )
+        val timestampFormats =
+            listOf(
+                "2023-10-15T12:30:45.123Z",
+                // With microseconds
+                "2023-10-15T12:30:45.123456Z",
+                // Without milliseconds
+                "2023-10-15T12:30:45Z",
+            )
 
         for (timestamp in timestampFormats) {
             // Given
@@ -347,11 +361,11 @@ class SupabaseMapperTest {
         val iso8601Pattern = Regex("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z")
         assertTrue(
             "createdAt should be in ISO 8601 format",
-            dto.createdAt.matches(iso8601Pattern)
+            dto.createdAt.matches(iso8601Pattern),
         )
         assertTrue(
             "lastModified should be in ISO 8601 format",
-            dto.lastModified.matches(iso8601Pattern)
+            dto.lastModified.matches(iso8601Pattern),
         )
     }
 
@@ -401,14 +415,15 @@ class SupabaseMapperTest {
             name = "Test POI",
             location = Location.fromLngLat(longitude, latitude),
             status = status,
-            metadata = PinMetadata(
-                photoUri = photoUri,
-                notes = notes,
-                votes = votes,
-                createdBy = createdBy,
-                createdAt = createdAt,
-                lastModified = lastModified,
-            ),
+            metadata =
+                PinMetadata(
+                    photoUri = photoUri,
+                    notes = notes,
+                    votes = votes,
+                    createdBy = createdBy,
+                    createdAt = createdAt,
+                    lastModified = lastModified,
+                ),
         )
     }
 }

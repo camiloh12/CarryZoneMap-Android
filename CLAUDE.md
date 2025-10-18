@@ -40,9 +40,27 @@ CarryZoneMap is a modern Android app for mapping carry zones with **cloud synchr
 
 ### Code Quality
 ```bash
-# Future: Detekt and KtLint will be added in Phase 4
-# For now, rely on Android Studio's built-in inspections
+# Run Detekt static analysis (checks code quality, complexity, style)
+./gradlew detekt
+
+# Run KtLint formatter check
+./gradlew ktlintCheck
+
+# Auto-fix KtLint issues
+./gradlew ktlintFormat
+
+# Run all checks (tests + lint + detekt + ktlint)
+./gradlew check
 ```
+
+**Configuration:**
+- **Detekt v1.23.6**: Configured in `detekt.yml` with Compose-aware rules
+  - Adjusted thresholds for Compose functions (longer methods, more parameters allowed)
+  - Active rules: complexity, coroutines, naming, performance, potential bugs, style
+  - Magic number exceptions for common map coordinates and zoom levels
+- **KtLint v12.1.0**: Configured with Android conventions
+  - Ignores failures for Compose-specific false positives
+  - Excludes generated and build files
 
 ## Architecture
 
@@ -111,6 +129,13 @@ Presentation (ui/) → Domain (domain/) → Data (data/)
 - `auth/LoginScreen`: Email/password login and signup UI
 - `components/PinDialog`: Reusable dialog for pin creation/editing
 - `state/PinDialogState`: Sealed class managing dialog states (Hidden/Creating/Editing)
+- `map/`: Map-specific helper classes (refactored Oct 2025 for SOLID/DRY principles)
+  - `MapConstants`: Centralized constants (zoom levels, colors, property names, URLs)
+  - `FeatureClickHandler`: Chain of Responsibility pattern for polymorphic click handling
+  - `ExistingPinDetector`, `OverpassPoiDetector`, `MapTilerPoiDetector`: Detector implementations
+  - `CameraController`: Camera positioning logic (Single Responsibility)
+  - `MapLayerManager`: POI layer management (Single Responsibility)
+  - `LocationComponentManager`: Location component setup (Single Responsibility)
 - ViewModels injected via Hilt's `@HiltViewModel`
 
 **Dependency Injection** (`di/`):
@@ -123,8 +148,11 @@ Presentation (ui/) → Domain (domain/) → Data (data/)
 
 **Legacy** (`map/`):
 - Old map rendering code being phased out
-- `FeatureLayerManager` still used for MapLibre layer rendering
-- Other classes (`MapFacade`, `FeatureDataStore`, etc.) can be deprecated once refactor completes
+- `FeatureLayerManager` still used for MapLibre layer rendering (to be migrated to ui/map/)
+- `FeatureDataStore` still used for legacy feature persistence
+- `PersistedFeature` helper class for FeatureDataStore
+- **Removed (Oct 2025)**: MapFacade, MapSetupOrchestrator, MapInteractionHandler (replaced by ui/map/ helpers)
+- Can be fully deprecated once migration to domain models is complete
 
 ### Data Flow Pattern
 
@@ -369,6 +397,121 @@ fun MyDialog(
 ) { /* Implementation */ }
 ```
 
+### Pattern: Polymorphic Click Handling (Chain of Responsibility)
+
+The MapScreen click handling was refactored (Oct 2025) to use the Chain of Responsibility pattern instead of nested if-else statements. This makes the code more maintainable and extensible.
+
+**Example: Adding a new click detector**
+
+```kotlin
+// 1. Create a new detector class in ui/map/
+class CustomPoiDetector(private val viewModel: MapViewModel) : FeatureDetector {
+    override fun canHandle(map: MapLibreMap, screenPoint: PointF, clickPoint: LatLng): Boolean {
+        // Check if this detector should handle the click
+        val features = map.queryRenderedFeatures(screenPoint, "custom-layer-id")
+        return features.isNotEmpty()
+    }
+
+    override fun handle(map: MapLibreMap, screenPoint: PointF, clickPoint: LatLng) {
+        // Handle the click
+        val features = map.queryRenderedFeatures(screenPoint, "custom-layer-id")
+        val customFeature = features.firstOrNull() ?: return
+
+        val customData = customFeature.getStringProperty("custom_property")
+        viewModel.handleCustomFeature(customData, clickPoint.longitude, clickPoint.latitude)
+        Timber.d("User clicked custom POI: $customData")
+    }
+}
+
+// 2. Register the detector in FeatureClickHandler constructor
+class FeatureClickHandler(private val viewModel: MapViewModel) {
+    private val detectors: List<FeatureDetector> = listOf(
+        ExistingPinDetector(viewModel),
+        OverpassPoiDetector(viewModel),
+        MapTilerPoiDetector(viewModel),
+        CustomPoiDetector(viewModel)  // Add new detector
+    )
+    // ... rest of the class
+}
+```
+
+**Benefits**:
+- **Open/Closed Principle**: Add new detectors without modifying existing code
+- **Testable**: Each detector can be unit tested independently
+- **Readable**: Clear separation of concerns, no nested if-else
+- **Maintainable**: Easy to add/remove/reorder detectors
+
+### Pattern: Centralized Constants
+
+All magic numbers and strings are centralized in `MapConstants.kt` (Oct 2025 refactor).
+
+**Example: Adding new constants**
+
+```kotlin
+// In ui/map/MapConstants.kt
+object MapConstants {
+    // ... existing constants
+
+    // Add new feature-specific constants
+    const val NEW_FEATURE_ZOOM_LEVEL = 15.0
+    const val NEW_FEATURE_COLOR = "#FF5722"
+    const val NEW_FEATURE_LAYER_ID = "new-feature-layer"
+
+    object NewFeatureText {
+        const val TITLE = "New Feature"
+        const val DESCRIPTION = "Description of new feature"
+    }
+}
+
+// Usage in code
+val zoomLevel = MapConstants.NEW_FEATURE_ZOOM_LEVEL
+val title = MapConstants.NewFeatureText.TITLE
+```
+
+**Benefits**:
+- **DRY**: Define once, use everywhere
+- **Maintainability**: Change values in one place
+- **Discoverability**: All constants in one file
+- **Type safety**: Compile-time checking
+
+### Pattern: Single Responsibility Helper Classes
+
+MapScreen was refactored to delegate specific responsibilities to focused helper classes (Oct 2025).
+
+**Example: Adding a new map helper**
+
+```kotlin
+// 1. Create helper class in ui/map/ with single responsibility
+class MapAnimationController(private val map: MapLibreMap) {
+
+    fun animateToLocation(location: Location, duration: Long = 1000) {
+        // Single responsibility: handle map animations
+        val animation = CameraUpdateFactory.newLatLngZoom(
+            LatLng(location.latitude, location.longitude),
+            MapConstants.ZOOM_LEVEL_USER_LOCATION
+        )
+        map.animateCamera(animation, duration.toInt())
+        Timber.d("Animating to location: ${location.latitude}, ${location.longitude}")
+    }
+
+    fun animateZoom(zoomLevel: Double, duration: Long = 500) {
+        val animation = CameraUpdateFactory.zoomTo(zoomLevel)
+        map.animateCamera(animation, duration.toInt())
+        Timber.d("Animating zoom to: $zoomLevel")
+    }
+}
+
+// 2. Use in MapScreen
+val animationController = remember { MapAnimationController(map) }
+animationController.animateToLocation(currentLocation)
+```
+
+**Benefits**:
+- **Single Responsibility**: Each class does one thing well
+- **Testability**: Easy to test in isolation
+- **Reusability**: Can be used in other screens/features
+- **Maintainability**: Changes are localized
+
 ### Pattern: Offline-First Sync Operations
 
 When adding features that need cloud synchronization:
@@ -538,6 +681,12 @@ See `REFACTORING_PLAN.md` and `SUPABASE_PROGRESS.md` for detailed phases.
   - Background sync with WorkManager
   - Queue-based operations with retry logic (max 3 retries)
   - Network monitoring and last-write-wins conflict resolution
+- **MapScreen Refactoring** (Oct 2025): Applied SOLID and DRY principles
+  - Extracted MapConstants for all magic numbers and strings
+  - Implemented Chain of Responsibility pattern for click handling
+  - Created Single Responsibility helper classes (Camera, Layer, Location)
+  - Reduced MapScreen from 400 to 330 lines with better readability
+  - Improved testability and extensibility
 
 ### MVP Complete - Ready for Production! 🎉
 The app now has a fully functional offline-first architecture with:
@@ -586,6 +735,11 @@ When extending Supabase features:
 - `ui/auth/AuthViewModel.kt`: Authentication ViewModel example
 - `ui/state/PinDialogState.kt`: Sealed class for dialog state (example pattern)
 - `ui/components/PinDialog.kt`: Reusable dialog component example
+- `ui/map/MapConstants.kt`: **Centralized constants (DRY principle)**
+- `ui/map/FeatureClickHandler.kt`: **Chain of Responsibility pattern for click handling**
+- `ui/map/CameraController.kt`: Single Responsibility camera controller
+- `ui/map/MapLayerManager.kt`: Single Responsibility layer manager
+- `ui/map/LocationComponentManager.kt`: Single Responsibility location setup
 - `data/repository/PinRepositoryImpl.kt`: **Offline-first repository pattern with sync**
 - `data/repository/SupabaseAuthRepository.kt`: Authentication repository example
 - `data/sync/SyncManagerImpl.kt`: **Sync orchestration with conflict resolution**

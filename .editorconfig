@@ -1,0 +1,10 @@
+[*.kt]
+# Allow Compose @Composable functions to start with capital letters (standard Compose convention)
+ktlint_standard_function-naming = disabled
+
+# Allow inline comments in parameter and argument lists for clarity
+ktlint_standard_comment-wrapping = disabled
+
+# Increase max line length for test files to allow descriptive test function names
+[*Test.kt]
+max_line_length = 200

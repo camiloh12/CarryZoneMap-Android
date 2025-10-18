@@ -18,7 +18,8 @@ import com.carryzonemap.app.data.local.entity.SyncQueueEntity
 @Database(
     entities = [PinEntity::class, SyncQueueEntity::class],
     version = 4,
-    exportSchema = false, // Set to false for now; enable later with proper schema location
+    // Set to false for now; enable later with proper schema location
+    exportSchema = false,
 )
 abstract class CarryZoneDatabase : RoomDatabase() {
     /**
