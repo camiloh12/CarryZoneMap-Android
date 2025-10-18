@@ -170,9 +170,9 @@ Offline-First: Write to Room (instant UI) → Queue for sync → Upload when onl
    - Wait for Gradle sync to complete
    - Android Studio will use the Java 21 path from `gradle.properties`
 
-5. **Build and Run**
+5. **Clean, Build and Run**
    ```bash
-   ./gradlew assembleDebug
+   ./gradlew clean assembleDebug
    ```
 
    Or click the ▶️ Run button in Android Studio.
