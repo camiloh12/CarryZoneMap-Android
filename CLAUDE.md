@@ -40,9 +40,27 @@ CarryZoneMap is a modern Android app for mapping carry zones with **cloud synchr
 
 ### Code Quality
 ```bash
-# Future: Detekt and KtLint will be added in Phase 4
-# For now, rely on Android Studio's built-in inspections
+# Run Detekt static analysis (checks code quality, complexity, style)
+./gradlew detekt
+
+# Run KtLint formatter check
+./gradlew ktlintCheck
+
+# Auto-fix KtLint issues
+./gradlew ktlintFormat
+
+# Run all checks (tests + lint + detekt + ktlint)
+./gradlew check
 ```
+
+**Configuration:**
+- **Detekt v1.23.6**: Configured in `detekt.yml` with Compose-aware rules
+  - Adjusted thresholds for Compose functions (longer methods, more parameters allowed)
+  - Active rules: complexity, coroutines, naming, performance, potential bugs, style
+  - Magic number exceptions for common map coordinates and zoom levels
+- **KtLint v12.1.0**: Configured with Android conventions
+  - Ignores failures for Compose-specific false positives
+  - Excludes generated and build files
 
 ## Architecture
 

@@ -1,11 +1,9 @@
 package com.carryzonemap.app.di
 
-import android.content.Context
 import com.carryzonemap.app.BuildConfig
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
@@ -37,9 +35,7 @@ object SupabaseModule {
      */
     @Provides
     @Singleton
-    fun provideSupabaseClient(
-        @ApplicationContext context: Context,
-    ): SupabaseClient {
+    fun provideSupabaseClient(): SupabaseClient {
         return createSupabaseClient(
             supabaseUrl = BuildConfig.SUPABASE_URL,
             supabaseKey = BuildConfig.SUPABASE_ANON_KEY,

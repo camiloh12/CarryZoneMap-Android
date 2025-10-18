@@ -81,7 +81,8 @@ object SupabaseMapper {
             val instant = Instant.parse(isoTimestamp)
             instant.toEpochMilli()
         } catch (e: Exception) {
-            // Fallback to current time if parsing fails
+            // Log the error and fallback to current time if parsing fails
+            timber.log.Timber.w(e, "Failed to parse timestamp: $isoTimestamp")
             System.currentTimeMillis()
         }
     }

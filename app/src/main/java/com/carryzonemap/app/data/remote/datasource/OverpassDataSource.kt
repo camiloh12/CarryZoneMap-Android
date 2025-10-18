@@ -29,16 +29,24 @@ class OverpassDataSource
     ) {
         private val json = Json { ignoreUnknownKeys = true }
 
-        // Overpass API endpoint
-        private val overpassUrl = "https://overpass-api.de/api/interpreter"
-
         // Cache for POIs to handle API throttling/errors
         // Key: viewport bounds string, Value: cached POI data with timestamp
         private val poiCache = mutableMapOf<String, CachedPois>()
 
-        // Cache duration: 30 minutes
-        // Balances freshness with resilience to API errors
-        private val cacheDurationMs = 30 * 60 * 1000L // 30 minutes
+        companion object {
+            // Overpass API endpoint
+            private const val OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+
+            // Cache settings
+            private const val CACHE_DURATION_MS = 30 * 60 * 1000L // 30 minutes
+            private const val MAX_CACHE_ENTRIES = 20 // Prevent memory bloat
+            private const val COORDINATE_DECIMAL_PLACES = 3 // For cache key rounding
+
+            // Debug logging
+            private const val MAX_LOG_RESPONSE_LENGTH = 200 // Chars to show in error logs
+            private const val MAX_LOG_RESPONSE_ERROR_LENGTH = 100 // Chars to show in parse errors
+            private const val MILLIS_TO_SECONDS = 1000 // Conversion factor for time display
+        }
 
         /**
          * Cached POI data with timestamp.
@@ -48,7 +56,7 @@ class OverpassDataSource
             val timestamp: Long = System.currentTimeMillis(),
         ) {
             fun isExpired(now: Long = System.currentTimeMillis()): Boolean {
-                return (now - timestamp) > 30 * 60 * 1000L // 30 minutes
+                return (now - timestamp) > CACHE_DURATION_MS
             }
         }
 
@@ -81,48 +89,31 @@ class OverpassDataSource
 
             // Return cached data if it's still fresh
             if (cachedData != null && !cachedData.isExpired(now)) {
-                Timber.d("Returning ${cachedData.pois.size} POIs from cache (age: ${(now - cachedData.timestamp) / 1000}s)")
+                Timber.d("Returning ${cachedData.pois.size} POIs from cache (age: ${(now - cachedData.timestamp) / MILLIS_TO_SECONDS}s)")
                 return Result.success(cachedData.pois)
             }
 
             // Try to fetch fresh data from API
+            return fetchFromApiWithFallback(south, west, north, east, cacheKey, cachedData, now)
+        }
+
+        private suspend fun fetchFromApiWithFallback(
+            south: Double,
+            west: Double,
+            north: Double,
+            east: Double,
+            cacheKey: String,
+            cachedData: CachedPois?,
+            now: Long,
+        ): Result<List<Poi>> {
             return try {
-                // Build Overpass QL query
-                // Fetches shops, restaurants, bars, cafes, pubs, and other businesses
-                val query =
-                    """
-                    [out:json][timeout:25];
-                    (
-                      node["name"]["shop"]($south,$west,$north,$east);
-                      node["name"]["amenity"~"restaurant|bar|cafe|pub|fast_food|bank|pharmacy|fuel"]($south,$west,$north,$east);
-                      node["name"]["tourism"~"hotel|motel|museum"]($south,$west,$north,$east);
-                    );
-                    out body;
-                    """.trimIndent()
-
-                Timber.d("Fetching POIs in bounds: ($south,$west,$north,$east)")
-
-                // Make request to Overpass API using GET with data parameter
-                val response =
-                    httpClient.get(overpassUrl) {
-                        parameter("data", query)
-                    }
-
-                val responseText = response.bodyAsText()
+                val responseText = fetchOverpassApiResponse(south, west, north, east)
 
                 // Check if response is XML (error message - API throttled/overloaded)
                 if (responseText.trimStart().startsWith("<?xml") || responseText.trimStart().startsWith("<")) {
                     Timber.w("Overpass API returned XML instead of JSON (throttled/overloaded)")
-                    Timber.w("Response: ${responseText.take(200)}...")
-
-                    // Return cached data if available, even if expired
-                    if (cachedData != null) {
-                        Timber.i("Returning ${cachedData.pois.size} expired cached POIs due to API error")
-                        return Result.success(cachedData.pois)
-                    }
-
-                    Timber.w("No cached POIs available, returning empty list")
-                    return Result.success(emptyList())
+                    Timber.w("Response: ${responseText.take(MAX_LOG_RESPONSE_LENGTH)}...")
+                    return handleApiFallback(cachedData)
                 }
 
                 val pois = parseOverpassResponse(responseText)
@@ -135,21 +126,62 @@ class OverpassDataSource
                 Result.success(pois)
             } catch (e: Exception) {
                 Timber.e(e, "Failed to fetch POIs from Overpass API")
+                handleApiException(cachedData, e)
+            }
+        }
 
-                // Return cached data if available, even if expired
-                if (cachedData != null) {
-                    Timber.i("Returning ${cachedData.pois.size} cached POIs due to API error")
-                    return Result.success(cachedData.pois)
+        private suspend fun fetchOverpassApiResponse(
+            south: Double,
+            west: Double,
+            north: Double,
+            east: Double,
+        ): String {
+            val query =
+                """
+                [out:json][timeout:25];
+                (
+                  node["name"]["shop"]($south,$west,$north,$east);
+                  node["name"]["amenity"~"restaurant|bar|cafe|pub|fast_food|bank|pharmacy|fuel"]($south,$west,$north,$east);
+                  node["name"]["tourism"~"hotel|motel|museum"]($south,$west,$north,$east);
+                );
+                out body;
+                """.trimIndent()
+
+            Timber.d("Fetching POIs in bounds: ($south,$west,$north,$east)")
+
+            val response =
+                httpClient.get(OVERPASS_URL) {
+                    parameter("data", query)
                 }
 
-                // No cache available, return failure
-                Result.failure(e)
+            return response.bodyAsText()
+        }
+
+        private fun handleApiFallback(cachedData: CachedPois?): Result<List<Poi>> {
+            return if (cachedData != null) {
+                Timber.i("Returning ${cachedData.pois.size} expired cached POIs due to API error")
+                Result.success(cachedData.pois)
+            } else {
+                Timber.w("No cached POIs available, returning empty list")
+                Result.success(emptyList())
+            }
+        }
+
+        private fun handleApiException(
+            cachedData: CachedPois?,
+            exception: Exception,
+        ): Result<List<Poi>> {
+            return if (cachedData != null) {
+                Timber.i("Returning ${cachedData.pois.size} cached POIs due to API error")
+                Result.success(cachedData.pois)
+            } else {
+                Result.failure(exception)
             }
         }
 
         /**
          * Creates a cache key from bounding box coordinates.
-         * Rounds to 3 decimal places to group nearby viewport requests.
+         * Rounds to specified decimal places to group nearby viewport requests.
          */
         private fun createCacheKey(
             south: Double,
@@ -157,26 +189,27 @@ class OverpassDataSource
             north: Double,
             east: Double,
         ): String {
-            val roundedSouth = "%.3f".format(south)
-            val roundedWest = "%.3f".format(west)
-            val roundedNorth = "%.3f".format(north)
-            val roundedEast = "%.3f".format(east)
+            val format = "%.${COORDINATE_DECIMAL_PLACES}f"
+            val roundedSouth = format.format(south)
+            val roundedWest = format.format(west)
+            val roundedNorth = format.format(north)
+            val roundedEast = format.format(east)
             return "$roundedSouth,$roundedWest,$roundedNorth,$roundedEast"
         }
 
         /**
          * Removes expired cache entries to prevent memory bloat.
-         * Only keeps the 20 most recent cache entries.
+         * Only keeps the most recent cache entries.
          */
         private fun cleanupExpiredCache() {
-            if (poiCache.size > 20) {
-                // Remove oldest entries, keeping only the 20 most recent
+            if (poiCache.size > MAX_CACHE_ENTRIES) {
+                // Remove oldest entries, keeping only the most recent
                 val sortedEntries = poiCache.entries.sortedByDescending { it.value.timestamp }
                 poiCache.clear()
-                sortedEntries.take(20).forEach { (key, value) ->
+                sortedEntries.take(MAX_CACHE_ENTRIES).forEach { (key, value) ->
                     poiCache[key] = value
                 }
-                Timber.d("Cleaned up POI cache, kept 20 most recent entries")
+                Timber.d("Cleaned up POI cache, kept $MAX_CACHE_ENTRIES most recent entries")
             }
         }
 
@@ -196,39 +229,44 @@ class OverpassDataSource
                 val jsonResponse = json.parseToJsonElement(responseText).jsonObject
                 val elements = jsonResponse["elements"]?.jsonArray ?: return emptyList()
 
-                for (element in elements) {
-                    val elementObj = element.jsonObject
-
-                    // Extract basic properties
-                    val id = elementObj["id"]?.jsonPrimitive?.content ?: continue
-                    val lat = elementObj["lat"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: continue
-                    val lon = elementObj["lon"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: continue
-
-                    // Extract tags
-                    val tagsObj = elementObj["tags"]?.jsonObject ?: continue
-                    val tags = tagsObj.mapValues { it.value.jsonPrimitive.content }
-
-                    // Extract name (skip if no name)
-                    val name = tags["name"] ?: continue
-
-                    // Determine type (amenity, shop, tourism, etc.)
-                    val type = tags["amenity"] ?: tags["shop"] ?: tags["tourism"] ?: "unknown"
-
-                    pois.add(
-                        Poi(
-                            id = id,
-                            name = name,
-                            latitude = lat,
-                            longitude = lon,
-                            type = type,
-                            tags = tags,
-                        ),
-                    )
-                }
+                pois.addAll(
+                    elements.mapNotNull { element ->
+                        parsePoiElement(element.jsonObject)
+                    },
+                )
             } catch (e: Exception) {
-                Timber.e(e, "Failed to parse Overpass response. Response start: ${responseText.take(100)}")
+                Timber.e(e, "Failed to parse Overpass response. Response start: ${responseText.take(MAX_LOG_RESPONSE_ERROR_LENGTH)}")
             }
 
             return pois
+        }
+
+        /**
+         * Parses a single POI element from Overpass JSON.
+         * Returns null if the element is invalid or missing required fields.
+         */
+        private fun parsePoiElement(elementObj: kotlinx.serialization.json.JsonObject): Poi? {
+            // Extract all required fields
+            val id = elementObj["id"]?.jsonPrimitive?.content
+            val lat = elementObj["lat"]?.jsonPrimitive?.content?.toDoubleOrNull()
+            val lon = elementObj["lon"]?.jsonPrimitive?.content?.toDoubleOrNull()
+            val tagsObj = elementObj["tags"]?.jsonObject
+            val tags = tagsObj?.mapValues { it.value.jsonPrimitive.content }
+            val name = tags?.get("name")
+
+            // Validate all required fields are present
+            if (id == null || lat == null || lon == null) return null
+            if (tags == null || name == null) return null
+
+            val type = tags["amenity"] ?: tags["shop"] ?: tags["tourism"] ?: "unknown"
+
+            return Poi(
+                id = id,
+                name = name,
+                latitude = lat,
+                longitude = lon,
+                type = type,
+                tags = tags,
+            )
         }
     }

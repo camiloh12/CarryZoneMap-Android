@@ -35,6 +35,15 @@ object MapConstants {
     // MapTiler API
     const val MAPTILER_BASE_URL = "https://api.maptiler.com/maps/streets-v4/style.json?key="
 
+    // Timeouts (milliseconds)
+    const val STYLE_LOADING_TIMEOUT_MS = 15000L // 15 seconds
+
+    // Time conversion
+    const val MILLIS_TO_SECONDS = 1000 // Conversion factor for time display
+
+    // Debug Logging
+    const val MAX_DEBUG_FEATURES = 5 // Limit debug log output for clicked features
+
     // Content Descriptions (for accessibility)
     object ContentDescriptions {
         const val SIGN_OUT = "Sign out"

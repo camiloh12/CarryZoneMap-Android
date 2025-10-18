@@ -151,7 +151,7 @@ class MapTilerPoiDetector(private val viewModel: MapViewModel) : FeatureDetector
 
         // Log for debugging
         Timber.d("Clicked features count: ${allFeatures.size}")
-        allFeatures.take(5).forEach { feature ->
+        allFeatures.take(MapConstants.MAX_DEBUG_FEATURES).forEach { feature ->
             Timber.d("Feature properties: ${feature.properties()}")
         }
 

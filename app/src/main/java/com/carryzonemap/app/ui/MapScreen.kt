@@ -150,17 +150,21 @@ fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
 
                         // Initialize all map components
                         val cameraController = CameraController(map)
+                        val helpers =
+                            MapHelpers(
+                                featureLayerManager = featureLayerManager,
+                                mapLayerManager = mapLayerManager,
+                                locationComponentManager = locationComponentManager,
+                                featureClickHandler = featureClickHandler,
+                                cameraController = cameraController,
+                            )
                         initializeMap(
                             context = context,
                             map = map,
                             style = style,
                             viewModel = viewModel,
                             uiState = uiState,
-                            featureLayerManager = featureLayerManager,
-                            mapLayerManager = mapLayerManager,
-                            locationComponentManager = locationComponentManager,
-                            featureClickHandler = featureClickHandler,
-                            cameraController = cameraController,
+                            helpers = helpers,
                         )
                     },
                     modifier = Modifier.fillMaxSize(),
@@ -291,10 +295,11 @@ private fun MapViewContainer(
                     // Set a timeout to detect style loading failures
                     android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                         if (!styleLoaded) {
-                            Timber.e("Style loading timeout after 15 seconds")
+                            val timeoutSeconds = MapConstants.STYLE_LOADING_TIMEOUT_MS / MapConstants.MILLIS_TO_SECONDS
+                            Timber.e("Style loading timeout after $timeoutSeconds seconds")
                             viewModel.setError("Failed to load map: Connection timeout. Please check your network connection.")
                         }
-                    }, 15000) // 15 second timeout
+                    }, MapConstants.STYLE_LOADING_TIMEOUT_MS)
 
                     try {
                         map.setStyle(styleUrl) { style ->
@@ -358,6 +363,17 @@ private fun MapViewContainer(
 }
 
 /**
+ * Container for all map helper objects used during initialization.
+ */
+private data class MapHelpers(
+    val featureLayerManager: FeatureLayerManager,
+    val mapLayerManager: MapLayerManager,
+    val locationComponentManager: LocationComponentManager,
+    val featureClickHandler: FeatureClickHandler,
+    val cameraController: CameraController,
+)
+
+/**
  * Initializes all map components and sets up event listeners.
  * Single location for map initialization logic.
  */
@@ -367,34 +383,30 @@ private fun initializeMap(
     style: Style,
     viewModel: MapViewModel,
     uiState: com.carryzonemap.app.ui.state.MapUiState,
-    featureLayerManager: FeatureLayerManager,
-    mapLayerManager: MapLayerManager,
-    locationComponentManager: LocationComponentManager,
-    featureClickHandler: FeatureClickHandler,
-    cameraController: CameraController,
+    helpers: MapHelpers,
 ) {
     Timber.d("initializeMap called - setting up map components")
 
     // Add pin layer
     Timber.d("Adding pin layer with ${uiState.pins.size} pins")
     val features = uiState.pins.toFeatures()
-    featureLayerManager.addSourceAndLayer(style, features)
+    helpers.featureLayerManager.addSourceAndLayer(style, features)
 
     // Add POI layer
     Timber.d("Adding POI layer")
-    mapLayerManager.addPoiLayer(style)
+    helpers.mapLayerManager.addPoiLayer(style)
 
     // Enable location component (blue dot) if permission granted
     if (uiState.hasLocationPermission) {
         Timber.d("Enabling location component (permission granted)")
-        locationComponentManager.enableLocationComponent(context, map, style)
+        helpers.locationComponentManager.enableLocationComponent(context, map, style)
     } else {
         Timber.d("Skipping location component (no permission)")
     }
 
     // Set default camera position
     Timber.d("Setting default camera position")
-    cameraController.moveToDefaultPosition()
+    helpers.cameraController.moveToDefaultPosition()
 
     // Fetch POIs for initial viewport
     Timber.d("Fetching POIs for initial viewport")
@@ -409,7 +421,7 @@ private fun initializeMap(
     // Set up click handler
     map.addOnMapClickListener { point ->
         Timber.d("Map clicked at: ${point.latitude}, ${point.longitude}")
-        featureClickHandler.handleClick(map, point)
+        helpers.featureClickHandler.handleClick(map, point)
     }
 
     Timber.d("Map initialization complete!")
