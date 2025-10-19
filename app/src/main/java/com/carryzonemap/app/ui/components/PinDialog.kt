@@ -55,46 +55,72 @@ fun PinDialog(
         }
         is PinDialogState.Creating -> {
             PinDialogContent(
-                title = "Create Pin",
-                poiName = dialogState.name,
-                selectedStatus = dialogState.selectedStatus,
-                isEditing = false,
-                onStatusSelected = onStatusSelected,
-                onConfirm = onConfirm,
-                onDelete = onDelete,
-                onDismiss = onDismiss,
+                config =
+                    PinDialogContentConfig(
+                        title = "Create Pin",
+                        poiName = dialogState.name,
+                        selectedStatus = dialogState.selectedStatus,
+                        isEditing = false,
+                    ),
+                callbacks =
+                    PinDialogCallbacks(
+                        onStatusSelected = onStatusSelected,
+                        onConfirm = onConfirm,
+                        onDelete = onDelete,
+                        onDismiss = onDismiss,
+                    ),
             )
         }
         is PinDialogState.Editing -> {
             PinDialogContent(
-                title = "Edit Pin",
-                poiName = dialogState.pin.name,
-                selectedStatus = dialogState.selectedStatus,
-                isEditing = true,
-                onStatusSelected = onStatusSelected,
-                onConfirm = onConfirm,
-                onDelete = onDelete,
-                onDismiss = onDismiss,
+                config =
+                    PinDialogContentConfig(
+                        title = "Edit Pin",
+                        poiName = dialogState.pin.name,
+                        selectedStatus = dialogState.selectedStatus,
+                        isEditing = true,
+                    ),
+                callbacks =
+                    PinDialogCallbacks(
+                        onStatusSelected = onStatusSelected,
+                        onConfirm = onConfirm,
+                        onDelete = onDelete,
+                        onDismiss = onDismiss,
+                    ),
             )
         }
     }
 }
 
+/**
+ * Configuration data for the pin dialog content.
+ */
+private data class PinDialogContentConfig(
+    val title: String,
+    val poiName: String,
+    val selectedStatus: PinStatus,
+    val isEditing: Boolean,
+)
+
+/**
+ * Callbacks for the pin dialog interactions.
+ */
+private data class PinDialogCallbacks(
+    val onStatusSelected: (PinStatus) -> Unit,
+    val onConfirm: () -> Unit,
+    val onDelete: () -> Unit,
+    val onDismiss: () -> Unit,
+)
+
 @Composable
 private fun PinDialogContent(
-    title: String,
-    poiName: String,
-    selectedStatus: PinStatus,
-    isEditing: Boolean,
-    onStatusSelected: (PinStatus) -> Unit,
-    onConfirm: () -> Unit,
-    onDelete: () -> Unit,
-    onDismiss: () -> Unit,
+    config: PinDialogContentConfig,
+    callbacks: PinDialogCallbacks,
 ) {
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = callbacks.onDismiss,
         title = {
-            Text(text = title)
+            Text(text = config.title)
         },
         text = {
             Column(
@@ -103,7 +129,7 @@ private fun PinDialogContent(
             ) {
                 // Display POI name
                 Text(
-                    text = poiName,
+                    text = config.poiName,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -118,16 +144,16 @@ private fun PinDialogContent(
                 PinStatus.entries.forEach { status ->
                     StatusOption(
                         status = status,
-                        isSelected = status == selectedStatus,
-                        onClick = { onStatusSelected(status) },
+                        isSelected = status == config.selectedStatus,
+                        onClick = { callbacks.onStatusSelected(status) },
                     )
                 }
 
                 // Delete button for editing
-                if (isEditing) {
+                if (config.isEditing) {
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedButton(
-                        onClick = onDelete,
+                        onClick = callbacks.onDelete,
                         modifier = Modifier.fillMaxWidth(),
                         colors =
                             ButtonDefaults.outlinedButtonColors(
@@ -146,12 +172,12 @@ private fun PinDialogContent(
             }
         },
         confirmButton = {
-            Button(onClick = onConfirm) {
-                Text(if (isEditing) "Save" else "Create")
+            Button(onClick = callbacks.onConfirm) {
+                Text(if (config.isEditing) "Save" else "Create")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = callbacks.onDismiss) {
                 Text("Cancel")
             }
         },

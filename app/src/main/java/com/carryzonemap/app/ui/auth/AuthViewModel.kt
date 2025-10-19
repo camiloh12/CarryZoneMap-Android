@@ -30,6 +30,10 @@ class AuthViewModel
             authRepository.authState as? StateFlow<AuthState>
                 ?: MutableStateFlow(AuthState.Loading)
 
+        companion object {
+            private const val MIN_PASSWORD_LENGTH = 6
+        }
+
         /**
          * Signs in a user with email and password.
          */
@@ -107,27 +111,27 @@ class AuthViewModel
             email: String,
             password: String,
         ): Boolean {
-            if (email.isBlank()) {
-                _uiState.update { it.copy(error = "Email is required") }
-                return false
-            }
+            val errorMessage = getValidationError(email, password)
 
-            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                _uiState.update { it.copy(error = "Invalid email format") }
-                return false
+            return if (errorMessage != null) {
+                _uiState.update { it.copy(error = errorMessage) }
+                false
+            } else {
+                true
             }
+        }
 
-            if (password.isBlank()) {
-                _uiState.update { it.copy(error = "Password is required") }
-                return false
+        private fun getValidationError(
+            email: String,
+            password: String,
+        ): String? {
+            return when {
+                email.isBlank() -> "Email is required"
+                !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() -> "Invalid email format"
+                password.isBlank() -> "Password is required"
+                password.length < MIN_PASSWORD_LENGTH -> "Password must be at least $MIN_PASSWORD_LENGTH characters"
+                else -> null
             }
-
-            if (password.length < 6) {
-                _uiState.update { it.copy(error = "Password must be at least 6 characters") }
-                return false
-            }
-
-            return true
         }
     }
 

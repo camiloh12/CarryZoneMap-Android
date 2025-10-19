@@ -35,8 +35,10 @@ class FeatureLayerManager {
                 PropertyFactory.circleRadius(8f),
                 PropertyFactory.circleColor(
                     match(
-                        get(FeatureDataStore.PROPERTY_COLOR_STATE), // Uses constant from FeatureDataStore
-                        literal(COLOR_GREEN_HEX), // Default color
+                        // Uses constant from FeatureDataStore
+                        get(FeatureDataStore.PROPERTY_COLOR_STATE),
+                        // Default color
+                        literal(COLOR_GREEN_HEX),
                         stop(FeatureDataStore.COLOR_STATE_GREEN, literal(COLOR_GREEN_HEX)),
                         stop(FeatureDataStore.COLOR_STATE_YELLOW, literal(COLOR_YELLOW_HEX)),
                         stop(FeatureDataStore.COLOR_STATE_RED, literal(COLOR_RED_HEX)),
