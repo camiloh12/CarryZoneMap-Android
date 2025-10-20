@@ -1,0 +1,60 @@
+Concealed Carry Map helps you navigate carry zones with confidence using community-powered location data.
+
+📍 KEY FEATURES
+
+• Interactive Map - Pan and zoom to explore carry zones in your area
+• Color-Coded Zones - Instantly see where firearms are allowed (green), uncertain (yellow), or prohibited (red)
+• Community Input - Mark locations based on real experiences and share with other users
+• Offline Support - Works completely offline with automatic cloud sync when online
+• Real-Time Updates - Get the latest information from the community as zones change
+• Location-Based - Auto-center on your current position and find nearby zones
+• Secure Authentication - Your contributions are tracked for accountability
+
+🗺️ HOW IT WORKS
+
+1. Sign up with email and password
+2. Grant location permission to see your position on the map
+3. Browse points of interest (POIs) to see community-reported carry status
+4. Tap any POI to add or update its carry zone status
+5. Your changes sync instantly to the cloud and appear for all users
+6. Works offline - changes queue and sync automatically when you're back online
+
+🎨 COLOR SYSTEM
+
+🟢 Green - Firearms allowed
+🟡 Yellow - Status uncertain or varies
+🔴 Red - No firearms allowed
+
+⚠️ IMPORTANT DISCLAIMER
+
+This app provides community-sourced information and should NOT be considered legal advice. Always verify carry laws and restrictions yourself before carrying a firearm. Users are solely responsible for compliance with all applicable federal, state, and local laws. The app developers and community contributors assume no liability for the accuracy of information provided.
+
+🔒 PRIVACY & SECURITY
+
+• All contributions are associated with your user account for accountability
+• Email/password authentication with secure session management
+• No personal location data is shared - only the zones you mark
+• Data syncs securely via Supabase cloud infrastructure
+
+🏗️ BUILT WITH MODERN TECHNOLOGY
+
+• Clean Architecture for reliability and maintainability
+• Offline-first design - works anywhere, syncs when possible
+• MapLibre for smooth, open-source mapping
+• Material Design 3 for a modern Android experience
+
+💡 USE CASES
+
+• Planning routes through unfamiliar areas
+• Checking status of businesses and public places
+• Sharing information with the community
+• Staying informed about local carry restrictions
+• Building a crowd-sourced database of carry zones
+
+📋 REQUIREMENTS
+
+• Android 8.0 (API 26) or higher
+• Internet connection for initial sync (works offline afterward)
+• Location permission for auto-centering on your position
+
+This app is developed for educational and informational purposes. Always consult official sources and legal counsel regarding firearm carry laws in your jurisdiction.
