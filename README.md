@@ -1,4 +1,4 @@
-# CarryZoneMap
+# Concealed Carry Map
 
 A modern Android application for mapping and tracking carry zones with **cloud synchronization**, built with **Kotlin**, **Jetpack Compose**, **MapLibre**, and **Supabase**. This project demonstrates production-ready Android architecture with clean separation of concerns, reactive state management, offline-first data sync, and comprehensive dependency injection.
 
