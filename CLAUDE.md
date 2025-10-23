@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CarryZoneMap is a modern Android app for mapping carry zones with **cloud synchronization**, built with Clean Architecture + MVVM + Offline-First Sync. The app was refactored from a basic MVP to production-ready architecture in October 2025, and Supabase integration was completed for authentication and real-time cloud sync. Key architectural decisions and completed work are documented in `REFACTORING_PLAN.md`, `REFACTORING_SUMMARY.md`, and `SUPABASE_PROGRESS.md`.
+CCW Map is a modern Android app for mapping carry zones with **cloud synchronization**, built with Clean Architecture + MVVM + Offline-First Sync. The app was refactored from a basic MVP to production-ready architecture in October 2025, and Supabase integration was completed for authentication and real-time cloud sync. Key architectural decisions and completed work are documented in `REFACTORING_PLAN.md`, `REFACTORING_SUMMARY.md`, and `SUPABASE_PROGRESS.md`.
 
 ## Build & Development Commands
 

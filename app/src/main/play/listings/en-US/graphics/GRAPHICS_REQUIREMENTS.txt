@@ -1,0 +1,55 @@
+GRAPHICS REQUIREMENTS FOR PLAY STORE
+=====================================
+
+This directory needs the following image files:
+
+1. APP ICON
+   Location: icon/icon.png
+   Size: 512 x 512 pixels
+   Format: 32-bit PNG with alpha channel
+   Requirements:
+   - Must be square
+   - Should represent the app (map + pin concept)
+   - Used in Play Store listing
+
+2. FEATURE GRAPHIC
+   Location: feature-graphic/feature-graphic.png
+   Size: 1024 x 500 pixels
+   Format: 24-bit PNG or JPEG
+   Requirements:
+   - Wide banner showcasing app name and key features
+   - No device frames
+   - Eye-catching design
+
+3. PHONE SCREENSHOTS (Minimum 2, Maximum 8)
+   Location: phone-screenshots/screenshot-1.png, screenshot-2.png, etc.
+   Size: 16:9 aspect ratio (e.g., 1080x1920 or 1440x2560)
+   Format: 24-bit PNG or JPEG
+
+   Suggested screenshots (in order):
+   - screenshot-1.png: Main map view with color-coded pins
+   - screenshot-2.png: Login screen
+   - screenshot-3.png: Pin creation dialog
+   - screenshot-4.png: Map with user location
+   - screenshot-5.png: Offline mode indicator
+   - screenshot-6.png: Pin editing dialog
+
+   Tips:
+   - Use Android emulator or real device
+   - Capture at standard resolutions (1080x1920 recommended)
+   - Consider adding device frames for professional look
+   - Add text overlays highlighting features (optional)
+
+4. TABLET SCREENSHOTS (Optional)
+   Location: tablet-screenshots/screenshot-1.png, etc.
+   Size: 16:9 or 16:10 aspect ratio (e.g., 2048x1536)
+   Format: 24-bit PNG or JPEG
+
+QUICK START:
+1. Take screenshots using Android Studio emulator
+2. Export at 1080x1920 resolution
+3. Rename sequentially (screenshot-1.png, screenshot-2.png, etc.)
+4. Place in appropriate folders
+5. Create icon and feature graphic using Figma/Canva/GIMP
+
+See README.md for detailed guidance and tool recommendations.

@@ -53,7 +53,7 @@ object MapConstants {
 
     // UI Text
     object UiText {
-        const val APP_NAME = "CarryZoneMap"
+        const val APP_NAME = "CCW Map"
         const val UNKNOWN_POI = "Unknown POI"
     }
 }
