@@ -1,4 +1,4 @@
-# Privacy Policy for Concealed Carry Map
+# Privacy Policy for CCW Map
 
 **Effective Date:** [INSERT DATE]
 
@@ -8,7 +8,7 @@
 
 ## Introduction
 
-This Privacy Policy describes how Concealed Carry Map ("we", "our", or "the app") collects, uses, and shares information when you use our mobile application.
+This Privacy Policy describes how CCW Map ("we", "our", or "the app") collects, uses, and shares information when you use our mobile application.
 
 **Developer Contact:**
 - Email: [INSERT YOUR EMAIL]
@@ -179,7 +179,7 @@ If you have questions about this Privacy Policy, please contact us:
 
 ## Consent
 
-By using Concealed Carry Map, you consent to this Privacy Policy and agree to its terms.
+By using CCW Map, you consent to this Privacy Policy and agree to its terms.
 
 ---
 

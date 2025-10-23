@@ -1,6 +1,6 @@
 # Play Store Metadata
 
-This directory contains all the metadata and assets needed for publishing **Concealed Carry Map** to the Google Play Store.
+This directory contains all the metadata and assets needed for publishing **CCW Map** to the Google Play Store.
 
 ## 📁 Directory Structure
 
@@ -60,7 +60,7 @@ You need to create the following image assets:
 **Design Suggestions for Feature Graphic:**
 ```
 ┌────────────────────────────────────────────────┐
-│  [App Icon]  Concealed Carry Map              │
+│  [App Icon]  CCW Map              │
 │                                                │
 │  🗺️ Community-Powered Zone Tracking            │
 │  🟢🟡🔴 Color-Coded • Offline-First • Secure   │
@@ -101,7 +101,7 @@ You need to create the following image assets:
 
 Review and customize if needed:
 
-- [ ] `listings/en-US/title.txt` - App title (currently: "Concealed Carry Map")
+- [ ] `listings/en-US/title.txt` - App title (currently: "CCW Map")
 - [ ] `listings/en-US/short-description.txt` - 80-char tagline
 - [ ] `listings/en-US/full-description.txt` - Full description with features
 - [ ] `release-notes/en-US/default.txt` - Initial release notes

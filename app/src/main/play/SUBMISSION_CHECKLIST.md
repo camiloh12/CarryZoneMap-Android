@@ -8,7 +8,7 @@ Use this checklist to ensure you have everything ready before submitting to Goog
 
 - [ ] **contact-email.txt** - Updated with your real email
 - [ ] **contact-website.txt** - Updated with your website/GitHub URL
-- [ ] **title.txt** - Reviewed (currently: "Concealed Carry Map")
+- [ ] **title.txt** - Reviewed (currently: "CCW Map")
 - [ ] **short-description.txt** - Reviewed (currently 76 chars)
 - [ ] **full-description.txt** - Reviewed and customized if needed
 - [ ] **release-notes/en-US/default.txt** - Reviewed initial release notes
@@ -110,7 +110,7 @@ Use this checklist to ensure you have everything ready before submitting to Goog
 
 - [ ] **App Created in Console**
   - New app created in Play Console
-  - App name: "Concealed Carry Map"
+  - App name: "CCW Map"
   - Default language: English (United States)
 
 - [ ] **Store Listing**
@@ -213,7 +213,7 @@ Use this checklist to ensure you have everything ready before submitting to Goog
 ### 🔍 SEO & Discovery
 
 - [ ] **App Title Optimized**
-  - Contains main keyword ("Concealed Carry Map")
+  - Contains main keyword ("CCW Map")
   - Under 50 characters
 
 - [ ] **Short Description Optimized**

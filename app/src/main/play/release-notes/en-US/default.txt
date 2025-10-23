@@ -1,6 +1,6 @@
 🎉 Initial Release - Version 1.0.0
 
-Welcome to Concealed Carry Map! This is our first public release.
+Welcome to CCW Map! This is our first public release.
 
 ✨ Features:
 • Interactive map with community-powered carry zone data

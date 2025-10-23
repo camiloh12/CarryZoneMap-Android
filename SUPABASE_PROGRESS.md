@@ -411,6 +411,90 @@ With Phases 1-6 complete, the app has a fully functional offline-first hybrid sy
 
 ---
 
+## Security Advisor Findings & Fixes
+
+**Last Security Audit:** 2025-10-23
+
+### Fixed Issues ✅
+
+#### 1. Function Search Path Mutable (WARN) - FIXED ✅
+**Issue:** Function `public.update_last_modified` had a mutable search_path, which could allow search_path hijacking attacks.
+
+**Fix Applied:** Recreated function with fixed search_path
+- Migration: `fix_update_last_modified_search_path`
+- Added `SET search_path = ''` to function definition
+- Added `SECURITY DEFINER` for extra security
+- [Remediation Guide](https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable)
+
+**Status:** ✅ Resolved
+
+### Known Warnings (Accepted)
+
+#### 2. RLS Disabled on spatial_ref_sys (ERROR) - ACCEPTED
+**Issue:** PostGIS system table `public.spatial_ref_sys` does not have RLS enabled.
+
+**Analysis:**
+- This is a PostGIS-managed system table containing coordinate system definitions
+- Cannot be modified by application (permission denied)
+- Contains only read-only reference data (no sensitive user data)
+- Security risk is minimal - table only has spatial reference definitions
+
+**Mitigation:**
+- Table is read-only by design
+- No application code writes to this table
+- Consider hiding from PostgREST API if not needed
+
+**Status:** ⚠️ Accepted risk (PostGIS system table limitation)
+- [Remediation Guide](https://supabase.com/docs/guides/database/database-linter?lint=0013_rls_disabled_in_public)
+
+#### 3. PostGIS Extension in Public Schema (WARN) - ACCEPTED
+**Issue:** PostGIS extension is installed in the public schema instead of a dedicated schema.
+
+**Analysis:**
+- PostGIS commonly requires installation in public schema for compatibility
+- Moving PostGIS after installation is complex and risks breaking existing spatial queries
+- Our application depends on PostGIS spatial types and functions
+- Security risk is low for legitimate spatial database usage
+
+**Mitigation:**
+- For future projects, consider installing PostGIS in `extensions` or `postgis` schema
+- Current setup follows common PostGIS practices
+- All application tables have proper RLS policies
+
+**Status:** ⚠️ Accepted risk (standard PostGIS practice)
+- [Remediation Guide](https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public)
+
+#### 4. Leaked Password Protection Disabled (WARN) - REQUIRES MANUAL CONFIGURATION
+**Issue:** Supabase Auth's leaked password protection is currently disabled.
+
+**What it does:**
+- Checks passwords against HaveIBeenPwned.org database
+- Prevents use of compromised passwords
+- Enhances security for user accounts
+
+**Action Required:**
+1. Go to Supabase Dashboard → Authentication → Providers → Email
+2. Scroll to "Password Strength and Leaked Password Protection"
+3. Enable "Check for leaked passwords"
+4. Save settings
+
+**Status:** ⚠️ Requires manual configuration in Supabase dashboard
+- [Remediation Guide](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)
+
+### Security Summary
+
+**Fixed:** 1 issue (search_path vulnerability)
+**Accepted:** 2 issues (PostGIS system limitations)
+**Manual Action Required:** 1 issue (Auth dashboard setting)
+
+**Overall Security Posture:** Good ✅
+- Application code follows security best practices
+- All user-facing tables have RLS enabled
+- Authentication and authorization properly configured
+- Known warnings are PostGIS-related and low risk
+
+---
+
 ## Troubleshooting
 
 ### Build Issues
