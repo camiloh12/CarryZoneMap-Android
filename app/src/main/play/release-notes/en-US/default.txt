@@ -1,4 +1,4 @@
-🎉 Initial Release - Version 1.0.0
+🎉 Initial Beta Release - Version 0.1.0
 
 Welcome to CCW Map! This is our first public release.
 
