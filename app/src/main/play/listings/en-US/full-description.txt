@@ -5,7 +5,6 @@ CCW Map helps you navigate carry zones with confidence using community-powered l
 • Interactive Map - Pan and zoom to explore carry zones in your area
 • Color-Coded Zones - Instantly see where firearms are allowed (green), uncertain (yellow), or prohibited (red)
 • Community Input - Mark locations based on real experiences and share with other users
-• Offline Support - Works completely offline with automatic cloud sync when online
 • Real-Time Updates - Get the latest information from the community as zones change
 • Location-Based - Auto-center on your current position and find nearby zones
 • Secure Authentication - Your contributions are tracked for accountability
