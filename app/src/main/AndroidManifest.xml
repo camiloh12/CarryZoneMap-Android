@@ -28,10 +28,37 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Deep link for email confirmation - custom scheme -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <!-- Custom scheme: com.carryzonemap.app://auth/callback -->
+                <data
+                    android:scheme="com.carryzonemap.app"
+                    android:host="auth"
+                    android:pathPrefix="/callback" />
+            </intent-filter>
+
+            <!-- Deep link for email confirmation - HTTPS fallback (GitHub Pages) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <!-- HTTPS deep link: https://camiloh12.github.io/CarryZoneMap-Android/auth/callback -->
+                <data
+                    android:scheme="https"
+                    android:host="camiloh12.github.io"
+                    android:pathPrefix="/CarryZoneMap-Android/auth/callback" />
             </intent-filter>
         </activity>
     </application>
