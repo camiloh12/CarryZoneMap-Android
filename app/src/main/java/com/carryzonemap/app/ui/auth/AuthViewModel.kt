@@ -46,7 +46,7 @@ class AuthViewModel
             }
 
             viewModelScope.launch {
-                _uiState.update { it.copy(isLoading = true, error = null) }
+                _uiState.update { it.copy(isLoading = true, error = null, successMessage = null) }
 
                 authRepository.signInWithEmail(email, password)
                     .onSuccess {
@@ -54,6 +54,7 @@ class AuthViewModel
                             it.copy(
                                 isLoading = false,
                                 error = null,
+                                successMessage = null,
                             )
                         }
                     }.onFailure { error ->
@@ -61,6 +62,7 @@ class AuthViewModel
                             it.copy(
                                 isLoading = false,
                                 error = "Sign in failed: ${error.message}",
+                                successMessage = null,
                             )
                         }
                     }
@@ -79,14 +81,23 @@ class AuthViewModel
             }
 
             viewModelScope.launch {
-                _uiState.update { it.copy(isLoading = true, error = null) }
+                _uiState.update { it.copy(isLoading = true, error = null, successMessage = null) }
 
                 authRepository.signUpWithEmail(email, password)
-                    .onSuccess {
+                    .onSuccess { user ->
+                        // Check if email confirmation is required (empty ID indicates pending confirmation)
+                        val message =
+                            if (user.id.isEmpty()) {
+                                "Account created! Please check your email to confirm your account before signing in."
+                            } else {
+                                null // Immediate login, no message needed
+                            }
+
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
                                 error = null,
+                                successMessage = message,
                             )
                         }
                     }.onFailure { error ->
@@ -94,6 +105,7 @@ class AuthViewModel
                             it.copy(
                                 isLoading = false,
                                 error = "Sign up failed: ${error.message}",
+                                successMessage = null,
                             )
                         }
                     }
@@ -101,10 +113,10 @@ class AuthViewModel
         }
 
         /**
-         * Clears any error messages.
+         * Clears any error or success messages.
          */
         fun clearError() {
-            _uiState.update { it.copy(error = null) }
+            _uiState.update { it.copy(error = null, successMessage = null) }
         }
 
         private fun validateInput(
@@ -141,4 +153,5 @@ class AuthViewModel
 data class AuthUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
+    val successMessage: String? = null,
 )

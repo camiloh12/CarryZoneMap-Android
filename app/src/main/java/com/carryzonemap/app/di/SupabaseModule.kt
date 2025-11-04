@@ -47,6 +47,9 @@ object SupabaseModule {
                 // Sessions are saved to SharedPreferences and loaded on app restart
                 alwaysAutoRefresh = true
                 autoLoadFromStorage = true
+                // Configure deep link scheme for email confirmation and password reset
+                scheme = "com.carryzonemap.app"
+                host = "auth"
             }
             install(Storage)
         }
