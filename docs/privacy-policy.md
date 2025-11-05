@@ -107,11 +107,11 @@ However, no method of transmission or storage is 100% secure. Use the app at you
 You have the right to:
 
 1. **Access Your Data**: View all pins you've created in the app
-2. **Delete Your Data**: Delete individual pins or your entire account
+2. **Delete Your Data**: Delete individual pins or your entire account ([Request Account Deletion](data-deletion.html))
 3. **Correct Your Data**: Update or modify pins you've created
 4. **Export Your Data**: Request a copy of your data by contacting us
 
-To exercise these rights, contact us at camilo@kyberneticlabs.com.
+To exercise these rights, contact us at camilo@kyberneticlabs.com or visit our [Data Deletion page](data-deletion.html).
 
 ---
 
