@@ -8,7 +8,10 @@
       "mcp__supabase__list_projects",
       "mcp__supabase__execute_sql",
       "Bash(find:*)",
-      "mcp__supabase__search_docs"
+      "mcp__supabase__search_docs",
+      "mcp__supabase__get_project",
+      "Bash(openssl rand:*)",
+      "Bash(keytool:*)"
     ],
     "deny": [],
     "ask": []

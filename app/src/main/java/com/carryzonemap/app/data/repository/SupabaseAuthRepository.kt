@@ -89,6 +89,7 @@ class SupabaseAuthRepository
 
                 val currentUser = auth.currentUserOrNull()
                 if (currentUser != null) {
+                    // User has immediate session (email confirmation disabled)
                     val user =
                         User(
                             id = currentUser.id,
@@ -98,9 +99,18 @@ class SupabaseAuthRepository
                     Timber.d("Sign up successful: ${user.email}, session will be persisted")
                     Result.success(user)
                 } else {
-                    val error = Exception("Sign up succeeded but user is null")
-                    Timber.e(error, "Sign up error")
-                    Result.failure(error)
+                    // Email confirmation required - signup succeeded, confirmation email sent
+                    // User will be null until they confirm their email
+                    Timber.d("Sign up successful: confirmation email sent to $email")
+                    Timber.d("User needs to confirm email before signing in")
+                    // Return a placeholder user to indicate success
+                    // The user cannot actually sign in until they confirm their email
+                    Result.success(
+                        User(
+                            id = "", // Empty ID indicates pending confirmation
+                            email = email,
+                        ),
+                    )
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Sign up failed: ${e.message}")
