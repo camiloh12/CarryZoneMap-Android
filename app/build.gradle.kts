@@ -71,6 +71,10 @@ android {
             )
         }
         debug {
+            // Different package name so debug and release can coexist
+            applicationIdSuffix = ".debug"
+            // Different app name to distinguish in launcher
+            versionNameSuffix = "-DEBUG"
             isMinifyEnabled = false
         }
     }
