@@ -11,7 +11,14 @@
       "mcp__supabase__search_docs",
       "mcp__supabase__get_project",
       "Bash(openssl rand:*)",
-      "Bash(keytool:*)"
+      "Bash(keytool:*)",
+      "Bash(unzip:*)",
+      "Bash($ANDROID_HOME/build-tools/*/aapt2)",
+      "Bash(dump badging:*)",
+      "Bash(git remote get-url:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)"
     ],
     "deny": [],
     "ask": []

@@ -20,14 +20,14 @@ if (localPropertiesFile.exists()) {
 
 android {
     namespace = "com.carryzonemap.app"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.carryzonemap.app"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        targetSdk = 35
+        versionCode = 2
+        versionName = "0.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -45,17 +45,25 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            storeFile = file(localProperties.getProperty("KEYSTORE_FILE") ?: "")
-            storePassword = localProperties.getProperty("KEYSTORE_PASSWORD")
-            keyAlias = localProperties.getProperty("KEY_ALIAS")
-            keyPassword = localProperties.getProperty("KEY_PASSWORD")
+        // Only create release signing config if keystore file is specified
+        val keystoreFile = localProperties.getProperty("KEYSTORE_FILE")
+        if (!keystoreFile.isNullOrEmpty()) {
+            create("release") {
+                storeFile = file(keystoreFile)
+                storePassword = localProperties.getProperty("KEYSTORE_PASSWORD")
+                keyAlias = localProperties.getProperty("KEY_ALIAS")
+                keyPassword = localProperties.getProperty("KEY_PASSWORD")
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            // Only use release signing if it was configured
+            val keystoreFile = localProperties.getProperty("KEYSTORE_FILE")
+            if (!keystoreFile.isNullOrEmpty()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

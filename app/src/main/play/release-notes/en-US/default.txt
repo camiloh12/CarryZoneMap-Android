@@ -5,18 +5,8 @@ Welcome to CCW Map! This is our first public release.
 ✨ Features:
 • Interactive map with community-powered carry zone data
 • Color-coded zones (green/yellow/red) for instant status recognition
-• Offline-first architecture - works without internet
-• Cloud sync with automatic conflict resolution
 • Email/password authentication for accountability
 • Real-time location services
-• Background sync for seamless updates
-
-📱 Requirements:
-• Android 8.0 or higher
-• Location permission for auto-centering
-• Internet connection for initial sync
 
 ⚠️ Important:
 This app provides community-sourced information and is not legal advice. Always verify carry laws yourself before carrying a firearm.
-
-Thank you for being an early adopter! Please report any issues or suggestions through the app settings.
