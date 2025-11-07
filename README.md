@@ -87,6 +87,7 @@ Offline-First: Write to Room (instant UI) → Queue for sync → Upload when onl
   - Re-center FAB button
 - 🔐 **User Authentication**:
   - Email/password sign-up and login
+  - Email confirmation with deep linking (mobile + desktop support)
   - Secure session management with Supabase
   - Persistent auth across app restarts
 - ☁️ **Cloud Synchronization**:
@@ -110,6 +111,7 @@ Offline-First: Write to Room (instant UI) → Queue for sync → Upload when onl
 - ✅ **Dual-database system**: Room (local) + Supabase (remote)
 - ✅ **Conflict resolution**: Last-write-wins with timestamps
 - ✅ **Network monitoring**: Reactive connectivity tracking
+- ✅ **Email confirmation deep linking**: Web fallback for mobile + desktop support
 - ✅ **SOLID principles**: Single Responsibility, Open/Closed applied throughout
 - ✅ **Design patterns**: Chain of Responsibility, Strategy, Factory
 - ✅ **DRY principle**: Centralized constants, no code duplication
@@ -119,6 +121,30 @@ Offline-First: Write to Room (instant UI) → Queue for sync → Upload when onl
 - ✅ Proper error handling and loading states
 - ✅ Comprehensive testing (98 unit tests, 100% pass rate)
 - ✅ Code quality tools (Detekt + KtLint)
+
+### Email Confirmation Deep Linking
+
+The app implements a robust email confirmation system that works on both mobile and desktop:
+
+**Mobile Experience**:
+1. User signs up → Receives confirmation email
+2. Clicks link on phone → App opens automatically
+3. Session auto-imported → User logged in instantly
+
+**Desktop Experience**:
+1. User signs up → Receives confirmation email
+2. Clicks link on computer → GitHub Pages fallback opens
+3. Shows instructions to check email on mobile device
+
+**Technical Implementation**:
+- **Dual deep link support**: Custom scheme (`com.carryzonemap.app://`) + HTTPS fallback
+- **AndroidManifest**: Two intent filters for seamless handling
+- **MainActivity**: Smart deep link handler extracts tokens from URL fragment
+- **GitHub Pages**: Fallback page with styled UI and clear instructions
+
+**Future Enhancement**: Android App Links with custom domain for verified HTTPS deep links (no browser selection dialog)
+
+See [EMAIL_CONFIRMATION_SETUP.md](./EMAIL_CONFIRMATION_SETUP.md) for complete details.
 
 ## 🚀 Getting Started
 
@@ -156,8 +182,14 @@ Offline-First: Write to Room (instant UI) → Queue for sync → Upload when onl
    2. Create a new project
    3. Go to **Settings → API** to find your URL and anon key
    4. Go to **SQL Editor** and run the migration from `supabase/migrations/001_initial_schema.sql`
-   5. Go to **Authentication → Providers → Email** and disable "Confirm email" for development
-   6. See [SUPABASE_PROGRESS.md](./SUPABASE_PROGRESS.md) for detailed setup instructions
+   5. Configure email confirmation:
+      - Go to **Authentication → URL Configuration**
+      - Set **Site URL** to: `https://camiloh12.github.io/CarryZoneMap-Android`
+      - Add **Redirect URLs**:
+        - `com.carryzonemap.app://auth/callback`
+        - `https://camiloh12.github.io/CarryZoneMap-Android/auth/callback`
+   6. See [EMAIL_CONFIRMATION_SETUP.md](./EMAIL_CONFIRMATION_SETUP.md) for email confirmation details
+   7. See [SUPABASE_PROGRESS.md](./SUPABASE_PROGRESS.md) for detailed setup instructions
 
 3. **Install Java 21** (if not already installed)
    ```bash
@@ -561,6 +593,7 @@ offline-first sync logic."
 
 - **[SUPABASE_INTEGRATION_PLAN.md](./SUPABASE_INTEGRATION_PLAN.md)**: Complete plan for Supabase cloud sync (Phases 1-4 complete)
 - **[SUPABASE_PROGRESS.md](./SUPABASE_PROGRESS.md)**: Implementation progress and setup guide
+- **[EMAIL_CONFIRMATION_SETUP.md](./EMAIL_CONFIRMATION_SETUP.md)**: Email confirmation setup guide with Option 2 implemented
 - **[REFACTORING_PLAN.md](./REFACTORING_PLAN.md)**: Original refactoring plan with phase breakdown
 - **[REFACTORING_SUMMARY.md](./REFACTORING_SUMMARY.md)**: Comprehensive summary of architectural changes
 - **[CLAUDE.md](./CLAUDE.md)**: Guidance for Claude Code when working with this codebase

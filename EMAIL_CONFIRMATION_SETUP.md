@@ -2,19 +2,22 @@
 
 This guide explains how to handle email confirmation for users who might click confirmation links from desktop or mobile devices.
 
-## Current Setup
+## Current Setup ✅ IMPLEMENTED
 
-The app uses a custom deep link scheme: `com.carryzonemap.app://auth/callback`
+The app uses **Option 2: Web Fallback with GitHub Pages** for email confirmation.
 
 **What works:**
 - ✅ User clicks confirmation link on mobile device → App opens and logs them in automatically
+- ✅ User clicks confirmation link on desktop → GitHub Pages fallback page with instructions
 
-**What doesn't work:**
-- ❌ User clicks confirmation link on desktop → Browser can't open the custom scheme
+**Configuration:**
+- Custom scheme: `com.carryzonemap.app://auth/callback`
+- HTTPS fallback: `https://camiloh12.github.io/CarryZoneMap-Android/auth/callback`
+- Supabase Site URL: `https://camiloh12.github.io/CarryZoneMap-Android`
 
 ## Solutions
 
-### Option 1: Simple - Email Instructions ⭐ Easiest (Recommended for MVP)
+### Option 1: Simple - Email Instructions (Not Implemented)
 
 **Pros:** Zero code changes, works immediately
 **Cons:** User experience isn't ideal
@@ -53,7 +56,9 @@ The app uses a custom deep link scheme: `com.carryzonemap.app://auth/callback`
 
 ---
 
-### Option 2: Better - Add Fallback Web Page ⭐⭐ Recommended for Production
+### Option 2: Better - Add Fallback Web Page ✅ IMPLEMENTED
+
+**Status**: ✅ **Currently implemented and working**
 
 Create a web page that handles both desktop and mobile users gracefully.
 
@@ -383,7 +388,9 @@ if (isAuthDeepLink) {
 
 ---
 
-### Option 3: Best - Android App Links (HTTPS Deep Links) ⭐⭐⭐ Production-Ready
+### Option 3: Best - Android App Links (HTTPS Deep Links) 🔮 FUTURE ENHANCEMENT
+
+**Status**: 📋 **Planned for future implementation**
 
 Use **verified HTTPS URLs** that work as both web pages AND deep links.
 
@@ -582,13 +589,13 @@ If not verified, check:
 
 ---
 
-## Recommendation
+## Current Implementation Status
 
-**For MVP/Beta:** Use **Option 1** (email instructions) - quickest to implement
+✅ **Currently Using**: **Option 2** (web fallback with GitHub Pages) - Good UX, no custom domain required
 
-**For Production:** Use **Option 3** (App Links) - best user experience and industry standard
+🔮 **Future Enhancement**: **Option 3** (App Links with custom domain) - Best user experience and industry standard
 
-**Middle Ground:** Use **Option 2** (web fallback) - good UX without needing a custom domain (can use Vercel/Netlify subdomain)
+The current implementation provides a solid user experience for both mobile and desktop users while avoiding the complexity of custom domain setup and App Links verification.
 
 ---
 

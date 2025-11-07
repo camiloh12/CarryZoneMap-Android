@@ -294,6 +294,30 @@ SUPABASE_ANON_KEY=your_supabase_anon_key_here
 **MapTiler**: Accessed via `BuildConfig.MAPTILER_API_KEY` in MapScreen
 **Supabase**: Get from Supabase dashboard → Settings → API. See `SUPABASE_PROGRESS.md` for setup instructions.
 
+### Email Confirmation Setup ✅
+The app uses **Option 2: Web Fallback with GitHub Pages** for email confirmation deep linking.
+
+**Configuration** (`AndroidManifest.xml`):
+- **Custom scheme**: `com.carryzonemap.app://auth/callback` (for mobile app)
+- **HTTPS fallback**: `https://camiloh12.github.io/CarryZoneMap-Android/auth/callback` (for desktop)
+
+**Supabase Configuration**:
+- **Site URL**: `https://camiloh12.github.io/CarryZoneMap-Android`
+- **Redirect URLs**: Both custom scheme and HTTPS fallback configured
+
+**How it works**:
+1. User signs up → Supabase sends confirmation email with HTTPS link
+2. **Mobile**: Android detects HTTPS deep link → Opens app directly → Auto-login
+3. **Desktop**: Browser opens GitHub Pages fallback → Shows instructions to open on mobile
+4. `MainActivity.handleDeepLink()` extracts tokens from URL fragment and calls `auth.importAuthToken()`
+
+**Files involved**:
+- `AndroidManifest.xml`: Intent filters for both schemes (lines 38-62)
+- `MainActivity.kt`: Deep link handler supporting both schemes (lines 94-135)
+- `SupabaseModule.kt`: Auth configuration with custom scheme (lines 51-52)
+
+**See**: `EMAIL_CONFIRMATION_SETUP.md` for complete setup guide and future enhancements (App Links with custom domain).
+
 ### Room Database
 - Database name: `carry_zone_db`
 - **Current version: 4** (added POI name support)
