@@ -107,7 +107,8 @@ class SupabaseAuthRepository
                     // The user cannot actually sign in until they confirm their email
                     Result.success(
                         User(
-                            id = "", // Empty ID indicates pending confirmation
+                            // Empty ID indicates pending confirmation
+                            id = "",
                             email = email,
                         ),
                     )

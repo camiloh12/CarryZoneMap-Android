@@ -95,8 +95,9 @@ class MainActivity : ComponentActivity() {
         val data = intent?.data ?: return
 
         // Check if this is an auth callback deep link (custom scheme OR HTTPS)
-        val isAuthDeepLink = (data.scheme == "com.carryzonemap.app" && data.host == "auth") ||
-                             (data.scheme == "https" && data.path?.startsWith("/auth/callback") == true)
+        val isAuthDeepLink =
+            (data.scheme == "com.carryzonemap.app" && data.host == "auth") ||
+                (data.scheme == "https" && data.path?.startsWith("/auth/callback") == true)
 
         if (isAuthDeepLink) {
             Timber.d("Received auth callback deep link: ${data.scheme}://${data.host}${data.path}")
@@ -106,14 +107,15 @@ class MainActivity : ComponentActivity() {
                     // Parse the URL fragment to extract tokens
                     val fragment = data.fragment
                     if (!fragment.isNullOrEmpty()) {
-                        val params = fragment.split("&").associate {
-                            val parts = it.split("=", limit = 2)
-                            if (parts.size == 2) {
-                                parts[0] to parts[1]
-                            } else {
-                                parts[0] to ""
+                        val params =
+                            fragment.split("&").associate {
+                                val parts = it.split("=", limit = 2)
+                                if (parts.size == 2) {
+                                    parts[0] to parts[1]
+                                } else {
+                                    parts[0] to ""
+                                }
                             }
-                        }
 
                         val accessToken = params["access_token"]
                         val refreshToken = params["refresh_token"]

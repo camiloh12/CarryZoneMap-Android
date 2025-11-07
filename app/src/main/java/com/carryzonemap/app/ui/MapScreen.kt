@@ -325,33 +325,34 @@ private fun MapViewContainer(
 
     // Properly handle lifecycle events
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            mapView?.let { view ->
-                when (event) {
-                    Lifecycle.Event.ON_START -> {
-                        Timber.d("Lifecycle: ON_START")
-                        view.onStart()
+        val observer =
+            LifecycleEventObserver { _, event ->
+                mapView?.let { view ->
+                    when (event) {
+                        Lifecycle.Event.ON_START -> {
+                            Timber.d("Lifecycle: ON_START")
+                            view.onStart()
+                        }
+                        Lifecycle.Event.ON_RESUME -> {
+                            Timber.d("Lifecycle: ON_RESUME")
+                            view.onResume()
+                        }
+                        Lifecycle.Event.ON_PAUSE -> {
+                            Timber.d("Lifecycle: ON_PAUSE")
+                            view.onPause()
+                        }
+                        Lifecycle.Event.ON_STOP -> {
+                            Timber.d("Lifecycle: ON_STOP")
+                            view.onStop()
+                        }
+                        Lifecycle.Event.ON_DESTROY -> {
+                            Timber.d("Lifecycle: ON_DESTROY")
+                            view.onDestroy()
+                        }
+                        else -> {}
                     }
-                    Lifecycle.Event.ON_RESUME -> {
-                        Timber.d("Lifecycle: ON_RESUME")
-                        view.onResume()
-                    }
-                    Lifecycle.Event.ON_PAUSE -> {
-                        Timber.d("Lifecycle: ON_PAUSE")
-                        view.onPause()
-                    }
-                    Lifecycle.Event.ON_STOP -> {
-                        Timber.d("Lifecycle: ON_STOP")
-                        view.onStop()
-                    }
-                    Lifecycle.Event.ON_DESTROY -> {
-                        Timber.d("Lifecycle: ON_DESTROY")
-                        view.onDestroy()
-                    }
-                    else -> {}
                 }
             }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
 
         onDispose {
