@@ -14,22 +14,31 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.carryzonemap.app.domain.model.PinStatus
+import com.carryzonemap.app.domain.model.RestrictionTag
 import com.carryzonemap.app.ui.state.PinDialogState
 
 /**
@@ -37,6 +46,9 @@ import com.carryzonemap.app.ui.state.PinDialogState
  *
  * @param dialogState The current state of the dialog
  * @param onStatusSelected Callback when a status is selected
+ * @param onRestrictionTagSelected Callback when a restriction tag is selected
+ * @param onSecurityScreeningChanged Callback when security screening checkbox changes
+ * @param onPostedSignageChanged Callback when posted signage checkbox changes
  * @param onConfirm Callback when the confirm button is clicked
  * @param onDelete Callback when the delete button is clicked (only shown for editing)
  * @param onDismiss Callback when the dialog is dismissed
@@ -45,6 +57,9 @@ import com.carryzonemap.app.ui.state.PinDialogState
 fun PinDialog(
     dialogState: PinDialogState,
     onStatusSelected: (PinStatus) -> Unit,
+    onRestrictionTagSelected: (RestrictionTag?) -> Unit,
+    onSecurityScreeningChanged: (Boolean) -> Unit,
+    onPostedSignageChanged: (Boolean) -> Unit,
     onConfirm: () -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
@@ -60,11 +75,17 @@ fun PinDialog(
                         title = "Create Pin",
                         poiName = dialogState.name,
                         selectedStatus = dialogState.selectedStatus,
+                        selectedRestrictionTag = dialogState.selectedRestrictionTag,
+                        hasSecurityScreening = dialogState.hasSecurityScreening,
+                        hasPostedSignage = dialogState.hasPostedSignage,
                         isEditing = false,
                     ),
                 callbacks =
                     PinDialogCallbacks(
                         onStatusSelected = onStatusSelected,
+                        onRestrictionTagSelected = onRestrictionTagSelected,
+                        onSecurityScreeningChanged = onSecurityScreeningChanged,
+                        onPostedSignageChanged = onPostedSignageChanged,
                         onConfirm = onConfirm,
                         onDelete = onDelete,
                         onDismiss = onDismiss,
@@ -78,11 +99,17 @@ fun PinDialog(
                         title = "Edit Pin",
                         poiName = dialogState.pin.name,
                         selectedStatus = dialogState.selectedStatus,
+                        selectedRestrictionTag = dialogState.selectedRestrictionTag,
+                        hasSecurityScreening = dialogState.hasSecurityScreening,
+                        hasPostedSignage = dialogState.hasPostedSignage,
                         isEditing = true,
                     ),
                 callbacks =
                     PinDialogCallbacks(
                         onStatusSelected = onStatusSelected,
+                        onRestrictionTagSelected = onRestrictionTagSelected,
+                        onSecurityScreeningChanged = onSecurityScreeningChanged,
+                        onPostedSignageChanged = onPostedSignageChanged,
                         onConfirm = onConfirm,
                         onDelete = onDelete,
                         onDismiss = onDismiss,
@@ -99,6 +126,9 @@ private data class PinDialogContentConfig(
     val title: String,
     val poiName: String,
     val selectedStatus: PinStatus,
+    val selectedRestrictionTag: RestrictionTag?,
+    val hasSecurityScreening: Boolean,
+    val hasPostedSignage: Boolean,
     val isEditing: Boolean,
 )
 
@@ -107,6 +137,9 @@ private data class PinDialogContentConfig(
  */
 private data class PinDialogCallbacks(
     val onStatusSelected: (PinStatus) -> Unit,
+    val onRestrictionTagSelected: (RestrictionTag?) -> Unit,
+    val onSecurityScreeningChanged: (Boolean) -> Unit,
+    val onPostedSignageChanged: (Boolean) -> Unit,
     val onConfirm: () -> Unit,
     val onDelete: () -> Unit,
     val onDismiss: () -> Unit,
@@ -147,6 +180,62 @@ private fun PinDialogContent(
                         isSelected = status == config.selectedStatus,
                         onClick = { callbacks.onStatusSelected(status) },
                     )
+                }
+
+                // Restriction tag dropdown (only for NO_GUN status)
+                if (config.selectedStatus == PinStatus.NO_GUN) {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Why is carry restricted?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    RestrictionTagDropdown(
+                        selectedTag = config.selectedRestrictionTag,
+                        onTagSelected = callbacks.onRestrictionTagSelected,
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Optional details:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            checked = config.hasSecurityScreening,
+                            onCheckedChange = callbacks.onSecurityScreeningChanged,
+                        )
+                        Text(
+                            text = "Active security screening",
+                            modifier = Modifier.clickable {
+                                callbacks.onSecurityScreeningChanged(!config.hasSecurityScreening)
+                            },
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            checked = config.hasPostedSignage,
+                            onCheckedChange = callbacks.onPostedSignageChanged,
+                        )
+                        Text(
+                            text = "Posted signage visible",
+                            modifier = Modifier.clickable {
+                                callbacks.onPostedSignageChanged(!config.hasPostedSignage)
+                            },
+                        )
+                    }
                 }
 
                 // Delete button for editing
@@ -234,5 +323,55 @@ private fun StatusOption(
             style = MaterialTheme.typography.bodyLarge,
             color = if (isSelected) backgroundColor else MaterialTheme.colorScheme.onSurface,
         )
+    }
+}
+
+@Composable
+private fun RestrictionTagDropdown(
+    selectedTag: RestrictionTag?,
+    onTagSelected: (RestrictionTag?) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    OutlinedButton(
+        onClick = { expanded = true },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = selectedTag?.displayName ?: "Select reason",
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector = Icons.Default.ArrowDropDown,
+            contentDescription = "Dropdown",
+        )
+    }
+
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = { expanded = false },
+        modifier = Modifier.fillMaxWidth(0.9f),
+    ) {
+        RestrictionTag.entries.forEach { tag ->
+            DropdownMenuItem(
+                text = {
+                    Column {
+                        Text(
+                            text = tag.displayName,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Text(
+                            text = tag.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
+                onClick = {
+                    onTagSelected(tag)
+                    expanded = false
+                },
+            )
+        }
     }
 }

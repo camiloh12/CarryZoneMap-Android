@@ -14,10 +14,11 @@ import com.carryzonemap.app.data.local.entity.SyncQueueEntity
  * Version 2: Added sync_queue table and created_by field to pins
  * Version 3: Fixed migration - ensuring schema consistency
  * Version 4: Added name field to pins table for POI names
+ * Version 5: Added restriction tags and enforcement details (restrictionTag, hasSecurityScreening, hasPostedSignage)
  */
 @Database(
     entities = [PinEntity::class, SyncQueueEntity::class],
-    version = 4,
+    version = 5,
     // Set to false for now; enable later with proper schema location
     exportSchema = false,
 )

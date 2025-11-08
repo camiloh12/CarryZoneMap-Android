@@ -5,6 +5,7 @@ import com.carryzonemap.app.domain.model.Location
 import com.carryzonemap.app.domain.model.Pin
 import com.carryzonemap.app.domain.model.PinMetadata
 import com.carryzonemap.app.domain.model.PinStatus
+import com.carryzonemap.app.domain.model.RestrictionTag
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 
@@ -35,6 +36,9 @@ object SupabaseMapper {
                     createdAt = parseTimestamp(createdAt),
                     lastModified = parseTimestamp(lastModified),
                 ),
+            restrictionTag = RestrictionTag.fromString(restrictionTag),
+            hasSecurityScreening = hasSecurityScreening,
+            hasPostedSignage = hasPostedSignage,
         )
     }
 
@@ -54,6 +58,9 @@ object SupabaseMapper {
             createdBy = metadata.createdBy,
             createdAt = formatTimestamp(metadata.createdAt),
             lastModified = formatTimestamp(metadata.lastModified),
+            restrictionTag = restrictionTag?.name,
+            hasSecurityScreening = hasSecurityScreening,
+            hasPostedSignage = hasPostedSignage,
         )
     }
 
