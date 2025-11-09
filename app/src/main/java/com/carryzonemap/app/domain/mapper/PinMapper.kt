@@ -4,6 +4,7 @@ import com.carryzonemap.app.domain.model.Location
 import com.carryzonemap.app.domain.model.Pin
 import com.carryzonemap.app.domain.model.PinMetadata
 import com.carryzonemap.app.domain.model.PinStatus
+import com.carryzonemap.app.domain.model.RestrictionTag
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.Point
 
@@ -17,6 +18,9 @@ object PinMapper {
     private const val PROPERTY_PHOTO_URI = "photo_uri"
     private const val PROPERTY_NOTES = "notes"
     private const val PROPERTY_CREATED_AT = "created_at"
+    private const val PROPERTY_RESTRICTION_TAG = "restriction_tag"
+    private const val PROPERTY_HAS_SECURITY_SCREENING = "has_security_screening"
+    private const val PROPERTY_HAS_POSTED_SIGNAGE = "has_posted_signage"
 
     /**
      * Converts a domain Pin model to a MapLibre Feature for map rendering.
@@ -36,6 +40,13 @@ object PinMapper {
             feature.addStringProperty(PROPERTY_NOTES, it)
         }
         feature.addNumberProperty(PROPERTY_CREATED_AT, metadata.createdAt)
+
+        // Add restriction tag and enforcement details
+        restrictionTag?.let {
+            feature.addStringProperty(PROPERTY_RESTRICTION_TAG, it.name)
+        }
+        feature.addBooleanProperty(PROPERTY_HAS_SECURITY_SCREENING, hasSecurityScreening)
+        feature.addBooleanProperty(PROPERTY_HAS_POSTED_SIGNAGE, hasPostedSignage)
 
         return feature
     }
@@ -73,12 +84,24 @@ object PinMapper {
                         ?: System.currentTimeMillis(),
             )
 
+        val restrictionTag =
+            getStringProperty(PROPERTY_RESTRICTION_TAG)?.let {
+                RestrictionTag.fromString(it)
+            }
+
+        val hasSecurityScreening = getBooleanProperty(PROPERTY_HAS_SECURITY_SCREENING) ?: false
+
+        val hasPostedSignage = getBooleanProperty(PROPERTY_HAS_POSTED_SIGNAGE) ?: false
+
         return Pin(
             id = id,
             name = name,
             location = location,
             status = status,
             metadata = metadata,
+            restrictionTag = restrictionTag,
+            hasSecurityScreening = hasSecurityScreening,
+            hasPostedSignage = hasPostedSignage,
         )
     }
 
