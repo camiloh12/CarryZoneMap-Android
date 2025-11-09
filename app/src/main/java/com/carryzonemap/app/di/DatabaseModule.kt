@@ -75,6 +75,22 @@ object DatabaseModule {
             }
         }
 
+    /**
+     * Migration from version 4 to version 5.
+     * Adds restriction tag and enforcement details columns to pins table.
+     */
+    private val MIGRATION_4_5 =
+        object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add restrictionTag column (nullable, required for NO_GUN status)
+                db.execSQL("ALTER TABLE pins ADD COLUMN restrictionTag TEXT")
+
+                // Add enforcement detail columns with default values
+                db.execSQL("ALTER TABLE pins ADD COLUMN hasSecurityScreening INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE pins ADD COLUMN hasPostedSignage INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
     @Provides
     @Singleton
     fun provideCarryZoneDatabase(
@@ -85,7 +101,7 @@ object DatabaseModule {
             CarryZoneDatabase::class.java,
             CarryZoneDatabase.DATABASE_NAME,
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .fallbackToDestructiveMigration() // For development - remove in production
             .build()
     }

@@ -20,6 +20,9 @@ import kotlinx.serialization.Serializable
  * @property createdBy User ID who created the pin
  * @property createdAt Timestamp when created (ISO 8601 format)
  * @property lastModified Timestamp when last modified (ISO 8601 format)
+ * @property restrictionTag Reason for restriction (enum name, required if status is NO_GUN)
+ * @property hasSecurityScreening Whether active security screening is present
+ * @property hasPostedSignage Whether posted "no guns" signage is visible
  */
 @Serializable
 data class SupabasePinDto(
@@ -38,4 +41,10 @@ data class SupabasePinDto(
     val createdAt: String,
     @SerialName("last_modified")
     val lastModified: String,
+    @SerialName("restriction_tag")
+    val restrictionTag: String? = null,
+    @SerialName("has_security_screening")
+    val hasSecurityScreening: Boolean = false,
+    @SerialName("has_posted_signage")
+    val hasPostedSignage: Boolean = false,
 )

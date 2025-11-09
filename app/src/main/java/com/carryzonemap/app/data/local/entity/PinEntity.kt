@@ -17,6 +17,9 @@ import androidx.room.PrimaryKey
  * @property createdBy User ID who created the pin
  * @property createdAt Timestamp when created (milliseconds since epoch)
  * @property lastModified Timestamp when last modified
+ * @property restrictionTag Reason for restriction (enum name, required if status is NO_GUN)
+ * @property hasSecurityScreening Whether active security screening is present
+ * @property hasPostedSignage Whether posted "no guns" signage is visible
  */
 @Entity(tableName = "pins")
 data class PinEntity(
@@ -32,4 +35,7 @@ data class PinEntity(
     val createdBy: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val lastModified: Long = System.currentTimeMillis(),
+    val restrictionTag: String? = null,
+    val hasSecurityScreening: Boolean = false,
+    val hasPostedSignage: Boolean = false,
 )

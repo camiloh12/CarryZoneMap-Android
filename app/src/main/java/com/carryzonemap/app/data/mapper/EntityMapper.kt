@@ -5,6 +5,7 @@ import com.carryzonemap.app.domain.model.Location
 import com.carryzonemap.app.domain.model.Pin
 import com.carryzonemap.app.domain.model.PinMetadata
 import com.carryzonemap.app.domain.model.PinStatus
+import com.carryzonemap.app.domain.model.RestrictionTag
 
 /**
  * Mapper for converting between domain models and database entities.
@@ -26,6 +27,9 @@ object EntityMapper {
             createdBy = metadata.createdBy,
             createdAt = metadata.createdAt,
             lastModified = metadata.lastModified,
+            restrictionTag = restrictionTag?.name,
+            hasSecurityScreening = hasSecurityScreening,
+            hasPostedSignage = hasPostedSignage,
         )
     }
 
@@ -51,6 +55,9 @@ object EntityMapper {
                     createdAt = createdAt,
                     lastModified = lastModified,
                 ),
+            restrictionTag = RestrictionTag.fromString(restrictionTag),
+            hasSecurityScreening = hasSecurityScreening,
+            hasPostedSignage = hasPostedSignage,
         )
     }
 

@@ -12,6 +12,7 @@ import com.carryzonemap.app.domain.model.Location
 import com.carryzonemap.app.domain.model.Pin
 import com.carryzonemap.app.domain.model.PinMetadata
 import com.carryzonemap.app.domain.model.PinStatus
+import com.carryzonemap.app.domain.model.RestrictionTag
 import com.carryzonemap.app.domain.repository.AuthRepository
 import com.carryzonemap.app.domain.repository.PinRepository
 import com.carryzonemap.app.ui.state.MapUiState
@@ -217,6 +218,57 @@ class MapViewModel
         }
 
         /**
+         * Updates the selected restriction tag in the dialog.
+         */
+        fun onDialogRestrictionTagSelected(tag: RestrictionTag?) {
+            val currentState = _uiState.value.pinDialogState
+            _uiState.update {
+                it.copy(
+                    pinDialogState =
+                        when (currentState) {
+                            is PinDialogState.Creating -> currentState.copy(selectedRestrictionTag = tag)
+                            is PinDialogState.Editing -> currentState.copy(selectedRestrictionTag = tag)
+                            is PinDialogState.Hidden -> currentState
+                        },
+                )
+            }
+        }
+
+        /**
+         * Updates the security screening checkbox in the dialog.
+         */
+        fun onDialogSecurityScreeningChanged(hasScreening: Boolean) {
+            val currentState = _uiState.value.pinDialogState
+            _uiState.update {
+                it.copy(
+                    pinDialogState =
+                        when (currentState) {
+                            is PinDialogState.Creating -> currentState.copy(hasSecurityScreening = hasScreening)
+                            is PinDialogState.Editing -> currentState.copy(hasSecurityScreening = hasScreening)
+                            is PinDialogState.Hidden -> currentState
+                        },
+                )
+            }
+        }
+
+        /**
+         * Updates the posted signage checkbox in the dialog.
+         */
+        fun onDialogPostedSignageChanged(hasSignage: Boolean) {
+            val currentState = _uiState.value.pinDialogState
+            _uiState.update {
+                it.copy(
+                    pinDialogState =
+                        when (currentState) {
+                            is PinDialogState.Creating -> currentState.copy(hasPostedSignage = hasSignage)
+                            is PinDialogState.Editing -> currentState.copy(hasPostedSignage = hasSignage)
+                            is PinDialogState.Hidden -> currentState
+                        },
+                )
+            }
+        }
+
+        /**
          * Confirms the pin creation or edit from the dialog.
          */
         fun confirmPinDialog() {
@@ -241,11 +293,24 @@ class MapViewModel
                                         PinMetadata(
                                             createdBy = userId,
                                         ),
+                                    restrictionTag = dialogState.selectedRestrictionTag,
+                                    hasSecurityScreening = dialogState.hasSecurityScreening,
+                                    hasPostedSignage = dialogState.hasPostedSignage,
                                 )
                             pinRepository.addPin(pin)
                         }
                         is PinDialogState.Editing -> {
-                            val updatedPin = dialogState.pin.withStatus(dialogState.selectedStatus)
+                            val updatedPin =
+                                dialogState.pin.copy(
+                                    status = dialogState.selectedStatus,
+                                    restrictionTag = dialogState.selectedRestrictionTag,
+                                    hasSecurityScreening = dialogState.hasSecurityScreening,
+                                    hasPostedSignage = dialogState.hasPostedSignage,
+                                    metadata =
+                                        dialogState.pin.metadata.copy(
+                                            lastModified = System.currentTimeMillis(),
+                                        ),
+                                )
                             pinRepository.updatePin(updatedPin)
                         }
                         is PinDialogState.Hidden -> {
