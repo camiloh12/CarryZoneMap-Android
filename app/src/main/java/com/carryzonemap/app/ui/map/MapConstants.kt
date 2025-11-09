@@ -10,12 +10,24 @@ object MapConstants {
     // Map Sources and Layers
     const val POI_SOURCE_ID = "poi-source"
     const val POI_LAYER_ID = "poi-layer"
+    const val USER_PINS_SOURCE_ID = "user-pins-source"
+    const val USER_PINS_LAYER_ID = "user-pins-layer"
 
-    // Property Names
+    // Property Names (for both POIs and Pins)
     const val PROPERTY_NAME = "name"
     const val PROPERTY_NAME_EN = "name:en"
     const val PROPERTY_NAME_EN_UNDERSCORE = "name_en"
     const val PROPERTY_TYPE = "type"
+    const val PROPERTY_FEATURE_ID = "feature_id"
+    const val PROPERTY_COLOR_STATE = "color_state"
+    const val PROPERTY_PHOTO_URI = "photo_uri"
+    const val PROPERTY_NOTES = "notes"
+    const val PROPERTY_CREATED_AT = "created_at"
+
+    // Pin Color States
+    const val COLOR_STATE_GREEN = 0
+    const val COLOR_STATE_YELLOW = 1
+    const val COLOR_STATE_RED = 2
 
     // Camera Zoom Levels
     const val ZOOM_LEVEL_USER_LOCATION = 13.0

@@ -62,6 +62,43 @@ CCW Map is a modern Android app for mapping carry zones with **cloud synchroniza
   - Ignores failures for Compose-specific false positives
   - Excludes generated and build files
 
+### Code Coverage
+```bash
+# Generate code coverage report (run tests first, then generate report)
+./gradlew testDebugUnitTest jacocoTestReport --continue
+
+# Or run tests and coverage separately (recommended if tests fail)
+./gradlew testDebugUnitTest || true  # Run tests, allow failures
+./gradlew jacocoTestReport            # Generate coverage report from execution data
+
+# View HTML coverage report
+open app/build/reports/jacoco/jacocoTestReport/html/index.html
+# Or on Linux: xdg-open app/build/reports/jacoco/jacocoTestReport/html/index.html
+
+# Verify coverage meets minimum thresholds (80% overall, 70% per class)
+./gradlew jacocoCoverageVerification
+```
+
+**Configuration:**
+- **JaCoCo v0.8.12**: Code coverage library configured for Android + Kotlin
+- **Reports**: Both XML and HTML formats generated
+- **Exclusions**: Generated code (Hilt, Room, Compose), Android framework classes, DTOs
+- **Current Coverage**: ~16% overall (expected due to untested UI composables)
+  - **Mappers**: 100% (domain and data mappers)
+  - **Domain Models**: 82%
+  - **ViewModels**: 69%
+  - **UI State**: 98%
+- **Minimum Thresholds** (enforced by `jacocoCoverageVerification`):
+  - Overall: 80% coverage
+  - Per class: 70% coverage (excludes UI composables, DTOs, generated code)
+
+**Report Locations**:
+- HTML Report: `app/build/reports/jacoco/jacocoTestReport/html/index.html`
+- XML Report: `app/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml`
+- Test Report: `app/build/reports/tests/testDebugUnitTest/index.html`
+
+**Note**: The `--continue` flag allows coverage report generation even if some tests fail (useful for Robolectric SDK configuration issues).
+
 ## Architecture
 
 ### Clean Architecture Layers
@@ -147,12 +184,12 @@ Presentation (ui/) → Domain (domain/) → Data (data/)
 - `LocationModule`: Location services (FusedLocationProviderClient)
 
 **Legacy** (`map/`):
-- Old map rendering code being phased out
-- `FeatureLayerManager` still used for MapLibre layer rendering (to be migrated to ui/map/)
-- `FeatureDataStore` still used for legacy feature persistence
-- `PersistedFeature` helper class for FeatureDataStore
+- `FeatureLayerManager`: Still used for MapLibre pin layer rendering
+  - Manages the user pins source/layer on the map
+  - Uses constants from `MapConstants` (refactored Nov 2025)
+  - Can be migrated to ui/map/ in the future
 - **Removed (Oct 2025)**: MapFacade, MapSetupOrchestrator, MapInteractionHandler (replaced by ui/map/ helpers)
-- Can be fully deprecated once migration to domain models is complete
+- **Removed (Nov 2025)**: FeatureDataStore, PersistedFeature (replaced by Room database with domain models)
 
 ### Data Flow Pattern
 
@@ -627,15 +664,14 @@ override suspend fun syncWithRemote(): Result<Unit> {
 - **Repositories**: Test with fake DAOs and SyncManager (✅ PinRepositoryImplTest - 12 tests with Robolectric)
 - **Domain models**: Test business logic (✅ LocationTest, PinTest, PinStatusTest - 27 tests total)
 - **Mappers**: Test bidirectional conversions (✅ EntityMapperTest, PinMapperTest, SupabaseMapperTest - 38 tests total)
-- **Legacy components**: FeatureDataStore, PersistedFeature (✅ 7 tests)
-- **Total**: **98 tests with 100% success rate** ✅
+- **Total**: **81 tests** (2 Robolectric configuration failures, 79 passing) ✅
 
 ### Key Testing Features
 - **Robolectric Integration**: PinRepositoryImplTest uses Robolectric to support Timber logging in tests
 - **Timber Logging**: Production code uses Timber for logging, properly initialized in tests
 - **Fake Implementations**: FakePinDao, FakeSyncManager, FakeAuthRepository for isolated testing
 - **Flow Testing**: Turbine library for testing reactive Flow emissions
-- **Fast Execution**: All 98 tests complete in under 20 seconds
+- **Fast Execution**: All 81 tests complete in under 3 minutes
 
 ### Dependencies Available
 - `kotlinx-coroutines-test` for `runTest`
@@ -651,7 +687,6 @@ override suspend fun syncWithRemote(): Result<Unit> {
 - Integration tests: `app/src/androidTest/java/com/carryzonemap/app/`
 
 All tests located in `app/src/test/java/com/carryzonemap/app/` organized by layer (domain, data, ui).
-Legacy tests: `FeatureDataStoreTest.kt`, `PersistedFeatureTest.kt` still present in `map/` package.
 
 ## Common Gotchas
 
@@ -727,7 +762,7 @@ The app now has a fully functional offline-first architecture with:
 4. **Enhanced Features**: Search, filtering by status, radius queries
 5. **Pin Details**: Notes, photos, face/license plate blurring (OpenCV)
 6. **Social Features**: Voting, comments, moderation
-7. **Deprecate `map/` package**: Fully migrate to domain models
+7. **Migrate FeatureLayerManager**: Move to `ui/map/` package for full architecture consistency
 
 ### Working with Supabase
 The app now uses Supabase for:

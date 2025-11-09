@@ -7,6 +7,7 @@ plugins {
     id("com.google.devtools.ksp")
     id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21"
     id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
+    id("jacoco")
 }
 
 // Read API key from local.properties
@@ -92,6 +93,134 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+        }
+    }
+}
+
+// JaCoCo configuration for code coverage
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+tasks.withType<Test> {
+    configure<JacocoTaskExtension> {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
+// Custom task for generating code coverage reports
+// This task generates reports from the JaCoCo execution data
+tasks.register<JacocoReport>("jacocoTestReport") {
+    // Note: This task should be run after testDebugUnitTest has already run
+    // Run with: ./gradlew testDebugUnitTest jacocoTestReport --continue
+    // The --continue flag ensures coverage report is generated even if some tests fail
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+
+    val fileFilter = listOf(
+        // Android framework
+        "**/R.class",
+        "**/R$*.class",
+        "**/BuildConfig.*",
+        "**/Manifest*.*",
+        "**/*Test*.*",
+        "android/**/*.*",
+
+        // Hilt/Dagger generated code
+        "**/*_HiltModules*",
+        "**/*_Factory*",
+        "**/*_MembersInjector*",
+        "hilt_aggregated_deps/**",
+        "dagger/hilt/**",
+        "**/di/**",
+
+        // Room generated code
+        "**/*_Impl*",
+        "**/*Database*_Impl*",
+
+        // Compose generated code
+        "**/ComposableSingletons*",
+        "**/*\$\$*",
+
+        // Data Transfer Objects (DTOs) - simple data classes
+        "**/dto/**",
+
+        // Application class
+        "**/CarryZoneApplication*",
+
+        // UI Screens and Composables (require UI tests, not unit tests)
+        "**/ui/MapScreen*",
+        "**/ui/auth/LoginScreen*",
+        "**/ui/auth/SignUpScreen*",
+        "**/ui/components/PinDialog*",
+        "**/MainActivity*",
+
+        // Legacy map code (minimal logic, being phased out)
+        "**/map/FeatureLayerManager*"
+    )
+
+    val debugTree = fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
+        exclude(fileFilter)
+    }
+
+    val mainSrc = "${project.projectDir}/src/main/java"
+
+    sourceDirectories.setFrom(files(mainSrc))
+    classDirectories.setFrom(files(debugTree))
+    executionData.setFrom(fileTree(layout.buildDirectory) {
+        include("jacoco/testDebugUnitTest.exec")
+    })
+}
+
+// Task for coverage verification with minimum thresholds
+tasks.register<JacocoCoverageVerification>("jacocoCoverageVerification") {
+    dependsOn("jacocoTestReport")
+
+    violationRules {
+        rule {
+            limit {
+                minimum = "0.80".toBigDecimal() // 80% minimum coverage
+            }
+        }
+
+        rule {
+            enabled = true
+            element = "CLASS"
+
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.70".toBigDecimal() // 70% per class
+            }
+
+            excludes = listOf(
+                // Exclude DTOs and simple data classes
+                "com.carryzonemap.app.data.remote.dto.*",
+
+                // Exclude UI composables (hard to unit test)
+                "com.carryzonemap.app.ui.MapScreen*",
+                "com.carryzonemap.app.ui.auth.*Screen*",
+                "com.carryzonemap.app.ui.components.*",
+
+                // Exclude Application class
+                "com.carryzonemap.app.CarryZoneApplication",
+
+                // Exclude generated code
+                "*.*_Factory",
+                "*.*_HiltModules*",
+                "*.*_Impl"
+            )
         }
     }
 }
