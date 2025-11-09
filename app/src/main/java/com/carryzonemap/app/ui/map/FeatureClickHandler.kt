@@ -1,7 +1,5 @@
 package com.carryzonemap.app.ui.map
 
-import com.carryzonemap.app.map.FeatureDataStore
-import com.carryzonemap.app.map.FeatureLayerManager
 import com.carryzonemap.app.ui.viewmodel.MapViewModel
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
@@ -74,7 +72,7 @@ class ExistingPinDetector(private val viewModel: MapViewModel) : FeatureDetector
         screenPoint: android.graphics.PointF,
         clickPoint: LatLng,
     ): Boolean {
-        val features = map.queryRenderedFeatures(screenPoint, FeatureLayerManager.USER_PINS_LAYER_ID)
+        val features = map.queryRenderedFeatures(screenPoint, MapConstants.USER_PINS_LAYER_ID)
         return features.isNotEmpty()
     }
 
@@ -83,10 +81,10 @@ class ExistingPinDetector(private val viewModel: MapViewModel) : FeatureDetector
         screenPoint: android.graphics.PointF,
         clickPoint: LatLng,
     ) {
-        val features = map.queryRenderedFeatures(screenPoint, FeatureLayerManager.USER_PINS_LAYER_ID)
+        val features = map.queryRenderedFeatures(screenPoint, MapConstants.USER_PINS_LAYER_ID)
         val pinFeature = features.firstOrNull() ?: return
 
-        val pinId = pinFeature.getStringProperty(FeatureDataStore.PROPERTY_FEATURE_ID)
+        val pinId = pinFeature.getStringProperty(MapConstants.PROPERTY_FEATURE_ID)
         if (pinId != null) {
             viewModel.showEditPinDialog(pinId)
             Timber.d("User clicked existing pin: $pinId")
