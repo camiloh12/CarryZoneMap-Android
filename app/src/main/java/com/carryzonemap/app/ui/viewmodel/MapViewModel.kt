@@ -17,6 +17,7 @@ import com.carryzonemap.app.domain.repository.AuthRepository
 import com.carryzonemap.app.domain.repository.PinRepository
 import com.carryzonemap.app.ui.state.MapUiState
 import com.carryzonemap.app.ui.state.PinDialogState
+import com.carryzonemap.app.util.UsBoundaryValidator
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -176,12 +177,22 @@ class MapViewModel
 
         /**
          * Shows the dialog to create a new pin at the specified location.
+         * Validates that the location is within US boundaries before showing the dialog.
          */
         fun showCreatePinDialog(
             name: String,
             longitude: Double,
             latitude: Double,
         ) {
+            // Validate location is within US boundaries
+            if (!UsBoundaryValidator.isWithinUsBoundaries(latitude, longitude)) {
+                _uiState.update {
+                    it.copy(error = "Pins can only be placed within the 50 US states and Washington DC")
+                }
+                Timber.w("Attempted to create pin outside US boundaries: ($latitude, $longitude)")
+                return
+            }
+
             val location = Location.fromLngLat(longitude, latitude)
             _uiState.update {
                 it.copy(pinDialogState = PinDialogState.Creating(name, location))
@@ -277,6 +288,19 @@ class MapViewModel
                 try {
                     when (dialogState) {
                         is PinDialogState.Creating -> {
+                            // Defensive validation: ensure location is within US boundaries
+                            if (!UsBoundaryValidator.isWithinUsBoundaries(
+                                    dialogState.location.latitude,
+                                    dialogState.location.longitude
+                                )
+                            ) {
+                                _uiState.update {
+                                    it.copy(error = "Pins can only be placed within the 50 US states and Washington DC")
+                                }
+                                Timber.e("Attempted to save pin outside US boundaries: ${dialogState.location}")
+                                return@launch
+                            }
+
                             // Get current user ID for createdBy field
                             val userId = authRepository.currentUserId
 

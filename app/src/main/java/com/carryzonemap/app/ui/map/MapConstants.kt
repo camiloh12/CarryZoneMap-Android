@@ -12,6 +12,8 @@ object MapConstants {
     const val POI_LAYER_ID = "poi-layer"
     const val USER_PINS_SOURCE_ID = "user-pins-source"
     const val USER_PINS_LAYER_ID = "user-pins-layer"
+    const val US_BOUNDARY_OVERLAY_SOURCE_ID = "us-boundary-overlay-source"
+    const val US_BOUNDARY_OVERLAY_LAYER_ID = "us-boundary-overlay-layer"
 
     // Property Names (for both POIs and Pins)
     const val PROPERTY_NAME = "name"
@@ -43,6 +45,10 @@ object MapConstants {
     const val POI_TEXT_HALO_WIDTH = 1.5f
     val POI_TEXT_OFFSET = arrayOf(0f, 0.5f)
     const val POI_TEXT_ANCHOR = "top"
+
+    // US Boundary Overlay Styling
+    const val US_OVERLAY_FILL_COLOR = "#808080" // Gray
+    const val US_OVERLAY_FILL_OPACITY = 0.6f    // Semi-transparent (increased for visibility)
 
     // MapTiler API
     const val MAPTILER_BASE_URL = "https://api.maptiler.com/maps/streets-v4/style.json?key="

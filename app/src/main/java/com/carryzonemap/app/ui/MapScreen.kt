@@ -391,7 +391,7 @@ private fun initializeMap(
 ) {
     Timber.d("initializeMap called - setting up map components")
 
-    // Add pin layer
+    // Add pin layer first
     Timber.d("Adding pin layer with ${uiState.pins.size} pins")
     val features = uiState.pins.toFeatures()
     helpers.featureLayerManager.addSourceAndLayer(style, features)
