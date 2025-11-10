@@ -48,7 +48,7 @@ object MapConstants {
 
     // US Boundary Overlay Styling
     const val US_OVERLAY_FILL_COLOR = "#808080" // Gray
-    const val US_OVERLAY_FILL_OPACITY = 0.4f    // Semi-transparent
+    const val US_OVERLAY_FILL_OPACITY = 0.6f    // Semi-transparent (increased for visibility)
 
     // MapTiler API
     const val MAPTILER_BASE_URL = "https://api.maptiler.com/maps/streets-v4/style.json?key="

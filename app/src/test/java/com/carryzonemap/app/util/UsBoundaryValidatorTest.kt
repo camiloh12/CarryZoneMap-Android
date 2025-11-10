@@ -7,6 +7,10 @@ import org.junit.Test
 /**
  * Unit tests for [UsBoundaryValidator].
  * Tests validation of coordinates within the 50 US states and Washington DC.
+ *
+ * Note: These tests use the bounding box fallback since we can't easily
+ * initialize the accurate boundary data in unit tests without Context.
+ * The accurate boundary validation is tested in instrumentation tests.
  */
 class UsBoundaryValidatorTest {
 

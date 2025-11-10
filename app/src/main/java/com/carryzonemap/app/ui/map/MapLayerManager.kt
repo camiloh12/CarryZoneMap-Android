@@ -19,32 +19,45 @@ import timber.log.Timber
 class MapLayerManager {
     /**
      * Adds the US boundary overlay layer to gray out non-US regions.
-     * This layer should be added first (at the bottom of the layer stack).
+     * This layer should be added before pin layers but after base map.
+     *
+     * @param context Android context for loading GeoJSON assets
+     * @param style MapLibre style to add the overlay to
      */
-    fun addUsBoundaryOverlay(style: Style) {
-        // Generate the overlay feature (world with US cutouts)
-        val overlayFeature = UsOverlayGenerator.generateNonUsOverlay()
+    fun addUsBoundaryOverlay(context: android.content.Context, style: Style) {
+        try {
+            // Generate the overlay feature (world with US cutouts using actual boundaries)
+            Timber.d("Generating US boundary overlay polygon with actual boundaries...")
+            val overlayFeature = UsOverlayGenerator.generateAccurateNonUsOverlay(context)
+            Timber.d("Overlay polygon generated successfully")
 
-        // Add overlay source
-        val overlaySource =
-            GeoJsonSource(
-                MapConstants.US_BOUNDARY_OVERLAY_SOURCE_ID,
-                FeatureCollection.fromFeature(overlayFeature),
-            )
-        style.addSource(overlaySource)
-        Timber.d("Added US boundary overlay source: ${MapConstants.US_BOUNDARY_OVERLAY_SOURCE_ID}")
+            // Add overlay source
+            val overlaySource =
+                GeoJsonSource(
+                    MapConstants.US_BOUNDARY_OVERLAY_SOURCE_ID,
+                    FeatureCollection.fromFeature(overlayFeature),
+                )
+            style.addSource(overlaySource)
+            Timber.d("Added US boundary overlay source: ${MapConstants.US_BOUNDARY_OVERLAY_SOURCE_ID}")
 
-        // Add overlay fill layer
-        val overlayLayer =
-            FillLayer(
-                MapConstants.US_BOUNDARY_OVERLAY_LAYER_ID,
-                MapConstants.US_BOUNDARY_OVERLAY_SOURCE_ID,
-            ).withProperties(
-                PropertyFactory.fillColor(MapConstants.US_OVERLAY_FILL_COLOR),
-                PropertyFactory.fillOpacity(MapConstants.US_OVERLAY_FILL_OPACITY),
-            )
-        style.addLayerAt(overlayLayer, 0) // Add at bottom of layer stack
-        Timber.d("Added US boundary overlay layer: ${MapConstants.US_BOUNDARY_OVERLAY_LAYER_ID}")
+            // Add overlay fill layer - don't specify index, it will be on top
+            // We'll adjust order after other layers are added
+            val overlayLayer =
+                FillLayer(
+                    MapConstants.US_BOUNDARY_OVERLAY_LAYER_ID,
+                    MapConstants.US_BOUNDARY_OVERLAY_SOURCE_ID,
+                ).withProperties(
+                    PropertyFactory.fillColor(MapConstants.US_OVERLAY_FILL_COLOR),
+                    PropertyFactory.fillOpacity(MapConstants.US_OVERLAY_FILL_OPACITY),
+                )
+            style.addLayer(overlayLayer) // Add without index first
+            Timber.d("Added US boundary overlay layer: ${MapConstants.US_BOUNDARY_OVERLAY_LAYER_ID}")
+
+            // Log all layers to debug
+            Timber.d("Current map layers after overlay added: ${style.layers.map { it.id }}")
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to add US boundary overlay")
+        }
     }
 
     /**

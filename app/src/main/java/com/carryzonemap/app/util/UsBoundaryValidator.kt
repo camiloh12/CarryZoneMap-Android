@@ -1,10 +1,102 @@
 package com.carryzonemap.app.util
 
+import android.content.Context
+import org.maplibre.geojson.MultiPolygon
+import org.maplibre.geojson.Point
+import timber.log.Timber
+
 /**
  * Validates if geographic coordinates are within the 50 US states and Washington DC.
- * Uses bounding boxes for each state for fast validation.
+ * Uses actual US boundary coordinates for accurate validation.
  */
 object UsBoundaryValidator {
+
+    private var usBoundaryPolygons: MultiPolygon? = null
+    private var isInitialized = false
+
+    /**
+     * Initializes the validator with actual US boundary data.
+     * Should be called once during app initialization.
+     *
+     * @param context Android context for loading GeoJSON assets
+     */
+    fun initialize(context: Context) {
+        if (isInitialized) return
+
+        try {
+            Timber.d("Initializing US boundary validator with actual boundary data...")
+            val feature = GeoJsonLoader.loadFirstFeatureFromAssets(
+                context,
+                "us_boundary_simplified.geojson"
+            )
+
+            if (feature != null && feature.geometry() is MultiPolygon) {
+                usBoundaryPolygons = feature.geometry() as MultiPolygon
+                isInitialized = true
+                Timber.d("US boundary validator initialized successfully with ${usBoundaryPolygons?.coordinates()?.size} polygons")
+            } else {
+                Timber.w("Failed to load US boundary, falling back to bounding box validation")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error initializing US boundary validator")
+        }
+    }
+
+    /**
+     * Checks if a point is within a polygon using ray casting algorithm.
+     */
+    private fun isPointInPolygon(point: Point, ring: List<Point>): Boolean {
+        var inside = false
+        val x = point.longitude()
+        val y = point.latitude()
+
+        var j = ring.size - 1
+        for (i in ring.indices) {
+            val xi = ring[i].longitude()
+            val yi = ring[i].latitude()
+            val xj = ring[j].longitude()
+            val yj = ring[j].latitude()
+
+            val intersect = ((yi > y) != (yj > y)) &&
+                (x < (xj - xi) * (y - yi) / (yj - yi) + xi)
+
+            if (intersect) inside = !inside
+            j = i
+        }
+
+        return inside
+    }
+
+    /**
+     * Checks if a point is within any of the US boundary polygons.
+     */
+    private fun isPointInUsBoundary(latitude: Double, longitude: Double): Boolean {
+        val boundaryPolygons = usBoundaryPolygons ?: return false
+        val point = Point.fromLngLat(longitude, latitude)
+
+        // Check each polygon (continental US, Alaska, Hawaii, etc.)
+        for (polygon in boundaryPolygons.coordinates()) {
+            if (polygon.isEmpty()) continue
+
+            // First ring is exterior, check if point is inside
+            val exteriorRing = polygon[0]
+            if (isPointInPolygon(point, exteriorRing)) {
+                // Check if point is in any holes (should be outside holes)
+                var inHole = false
+                for (i in 1 until polygon.size) {
+                    if (isPointInPolygon(point, polygon[i])) {
+                        inHole = true
+                        break
+                    }
+                }
+                if (!inHole) {
+                    return true // Point is in polygon and not in any hole
+                }
+            }
+        }
+
+        return false
+    }
 
     /**
      * Data class representing a geographic bounding box.
@@ -85,12 +177,20 @@ object UsBoundaryValidator {
 
     /**
      * Checks if the given coordinates are within the 50 US states or Washington DC.
+     * Uses actual boundary data if available, falls back to bounding boxes.
      *
      * @param latitude The latitude coordinate
      * @param longitude The longitude coordinate
      * @return true if the coordinates are within US boundaries, false otherwise
      */
     fun isWithinUsBoundaries(latitude: Double, longitude: Double): Boolean {
+        // Use accurate boundary checking if initialized
+        if (isInitialized && usBoundaryPolygons != null) {
+            return isPointInUsBoundary(latitude, longitude)
+        }
+
+        // Fallback to bounding box validation
+        Timber.d("Using bounding box validation (accurate boundaries not initialized)")
         return US_STATE_BOUNDING_BOXES.any { bbox ->
             bbox.contains(latitude, longitude)
         }
