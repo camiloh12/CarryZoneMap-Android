@@ -2,22 +2,11 @@
 
 ✨ New Features:
 • Restriction Tags - Now specify WHY carry is restricted at locations
-  - 10 categories: Government Buildings, Airport, School, Bar/Alcohol, Healthcare Facility, Place of Worship, Sports/Entertainment, Private Property, Posted Signage, Other
+  - 10 categories: Government Buildings, Airport, School, Bar/Alcohol, etc.
   - Optional enforcement details (security screening, posted signage)
-  - Better data quality and accountability for community contributions
-• Enhanced email confirmation with desktop browser support
-  - Works seamlessly on mobile (auto-opens app) and desktop (shows instructions)
-  - Improved deep linking reliability across devices
-
-🔧 Improvements:
-• Comprehensive code quality improvements and static analysis fixes
-• Better code maintainability and test coverage
-• Optimized release build with ProGuard minification
-• Smaller app size and improved security
 
 🐛 Bug Fixes:
 • Fixed email confirmation edge cases on desktop browsers
-• Resolved deep link handling issues
 
 ⚠️ Important:
 This app provides community-sourced information and is not legal advice. Always verify carry laws yourself before carrying a firearm.
