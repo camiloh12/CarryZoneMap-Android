@@ -133,7 +133,29 @@ Add the following secrets:
 3. Paste the **Value**
 4. Click **Add secret**
 
-### 4. Verify Workflow Configuration
+### 4. Set Up Branch Protection (Critical for Safety)
+
+**⚠️ IMPORTANT:** Since the CD pipeline automatically deploys on every push to `master`, you should protect this branch to prevent accidental releases.
+
+**Quick Setup:**
+1. Go to repository **Settings** → **Branches**
+2. Click **Add branch protection rule**
+3. Branch name pattern: `master`
+4. Enable:
+   - ✅ **Require a pull request before merging** (with 1 approval)
+   - ✅ **Require status checks to pass before merging**
+   - ✅ **Require conversation resolution before merging**
+5. Click **Create**
+
+**For detailed instructions and recommended settings, see [BRANCH_PROTECTION.md](BRANCH_PROTECTION.md)**
+
+This ensures:
+- No accidental direct pushes to `master`
+- All changes go through pull request review
+- CI tests must pass before deployment
+- Prevents unintended releases to Closed Testing - Alpha
+
+### 5. Verify Workflow Configuration
 
 The deployment workflow is configured in `.github/workflows/deploy.yml` and triggers on:
 
@@ -144,17 +166,59 @@ The deployment workflow is configured in `.github/workflows/deploy.yml` and trig
 
 ## Using the CD Pipeline
 
-### Automatic Deployment (Push to Main)
+### Recommended Workflow (with Branch Protection)
+
+If you've set up branch protection (recommended), use this pull request workflow:
+
+1. **Create a feature branch**:
+   ```bash
+   git checkout master
+   git pull origin master
+   git checkout -b feature/my-new-feature
+   ```
+
+2. **Make changes and push**:
+   ```bash
+   # Make your changes
+   git add .
+   git commit -m "feat: Add new feature"
+   git push origin feature/my-new-feature
+   ```
+
+3. **Create Pull Request on GitHub**:
+   - Go to your repository on GitHub
+   - Click **Pull requests** → **New pull request**
+   - Base: `master`, Compare: `feature/my-new-feature`
+   - Fill in description
+   - Click **Create pull request**
+
+4. **Wait for CI to pass**:
+   - GitHub Actions will automatically run tests
+   - All checks must pass (green checkmarks)
+
+5. **Get approval and merge**:
+   - Request review if required
+   - Once approved, click **Squash and merge** or **Merge pull request**
+   - Delete the feature branch
+
+6. **Automatic deployment**:
+   - When PR merges to `master`, CD pipeline automatically triggers
+   - Builds and deploys to **Closed Testing - Alpha**
+   - Monitor progress in **Actions** tab
+
+### Direct Push (if branch protection not enabled)
 
 ```bash
-# Make changes, commit, and push to main
-git checkout main
+# Make changes, commit, and push to master
+git checkout master
 git add .
 git commit -m "feat: Add new feature"
-git push origin main
+git push origin master
 
 # This automatically deploys to Closed Testing - Alpha track
 ```
+
+**⚠️ Warning:** Direct pushes to `master` immediately trigger deployment. Use branch protection to prevent this.
 
 ### Manual Deployment
 
@@ -164,7 +228,7 @@ git push origin main
 4. Click **Run workflow**
 5. Click **Run workflow** again to confirm
 
-Both methods deploy to the same **Closed Testing - Alpha** track.
+This deploys the current `master` branch to **Closed Testing - Alpha** track.
 
 ### Add Testers to Closed Testing - Alpha
 
@@ -284,13 +348,17 @@ keytool -list -keystore test.keystore
 
 ## Security Best Practices
 
-1. ✅ **Never commit secrets** to git (keystore, passwords, API keys)
-2. ✅ **Rotate service account keys** periodically (every 6-12 months)
-3. ✅ **Use GitHub environment protection rules** for production deployments
-4. ✅ **Back up your keystore** to multiple secure locations
-5. ✅ **Use strong passwords** for keystore and keys
-6. ✅ **Limit service account permissions** to only what's needed
-7. ✅ **Enable 2FA** on your Google Play Console account
+1. ✅ **Protect your master branch** - Prevent accidental releases (see [BRANCH_PROTECTION.md](BRANCH_PROTECTION.md))
+   - Require pull requests before merging
+   - Require CI status checks to pass
+   - Require code review approvals
+2. ✅ **Never commit secrets** to git (keystore, passwords, API keys)
+3. ✅ **Rotate service account keys** periodically (every 6-12 months)
+4. ✅ **Use GitHub environment protection rules** for production deployments
+5. ✅ **Back up your keystore** to multiple secure locations
+6. ✅ **Use strong passwords** for keystore and keys
+7. ✅ **Limit service account permissions** to only what's needed
+8. ✅ **Enable 2FA** on your Google Play Console account
 
 ## Monitoring Deployments
 
@@ -439,13 +507,14 @@ jobs:
 
 ## Next Steps
 
-1. ✅ Complete setup steps above
-2. ✅ Test with internal track first
-3. ✅ Verify ProGuard mappings are uploaded (for crash reports)
-4. ✅ Set up crash reporting (Firebase Crashlytics recommended)
-5. ✅ Configure staged rollouts for production releases
-6. ✅ Set up environment protection rules for production
-7. ✅ Document your release process in team wiki
+1. ✅ **Complete setup steps above** (service account, keystore, secrets)
+2. ✅ **Set up branch protection** (see [BRANCH_PROTECTION.md](BRANCH_PROTECTION.md)) - Critical!
+3. ✅ **Test deployment** with Closed Testing - Alpha track
+4. ✅ **Add testers** in Google Play Console
+5. ✅ **Verify ProGuard mappings** are uploaded (for crash reports)
+6. ✅ **Set up crash reporting** (Firebase Crashlytics recommended)
+7. ✅ **Document your release process** for your team
+8. ✅ **Configure staged rollouts** for production releases (when ready)
 
 ---
 
