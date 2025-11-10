@@ -391,6 +391,10 @@ private fun initializeMap(
 ) {
     Timber.d("initializeMap called - setting up map components")
 
+    // Add US boundary overlay (must be first - at bottom of layer stack)
+    Timber.d("Adding US boundary overlay")
+    helpers.mapLayerManager.addUsBoundaryOverlay(style)
+
     // Add pin layer
     Timber.d("Adding pin layer with ${uiState.pins.size} pins")
     val features = uiState.pins.toFeatures()
