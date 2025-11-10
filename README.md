@@ -635,7 +635,7 @@ Contributions are welcome! Please follow the existing architecture patterns:
 
 ## 📞 Contact
 
-[Add your contact information]
+camilo@kyberneticlabs.com
 
 ---
 
