@@ -1,4 +1,4 @@
-name: Deploy to Google Play
+name: Deploy to Google Play (Closed Testing - Alpha)
 
 on:
   # Trigger on pushes to main/master branch
@@ -6,23 +6,9 @@ on:
     branches:
       - main
       - master
-    # Optionally trigger only on version tags
-    tags:
-      - 'v*.*.*'
 
-  # Allow manual triggering with track selection
+  # Allow manual triggering
   workflow_dispatch:
-    inputs:
-      track:
-        description: 'Release track'
-        required: true
-        type: choice
-        default: 'internal'
-        options:
-          - internal
-          - alpha
-          - beta
-          - production
 
 jobs:
   deploy:
@@ -66,27 +52,13 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew bundleRelease --stacktrace
 
-      - name: Determine release track
-        id: track
-        run: |
-          # Use workflow input if available (manual trigger)
-          if [ -n "${{ github.event.inputs.track }}" ]; then
-            echo "track=${{ github.event.inputs.track }}" >> $GITHUB_OUTPUT
-          # Use production for version tags
-          elif [[ ${{ github.ref }} == refs/tags/v* ]]; then
-            echo "track=production" >> $GITHUB_OUTPUT
-          # Use internal for branch pushes
-          else
-            echo "track=internal" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Upload to Google Play
+      - name: Upload to Google Play (Closed Testing - Alpha)
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.carryzonemap.app
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
-          track: ${{ steps.track.outputs.track }}
+          track: alpha
           status: completed
           inAppUpdatePriority: 2
           # Optional: Add release notes
@@ -112,13 +84,19 @@ jobs:
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Track:** ${{ steps.track.outputs.track }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Track:** Closed Testing - Alpha" >> $GITHUB_STEP_SUMMARY
           echo "- **Version:** $(grep versionName app/build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ Successfully deployed to **${{ steps.track.outputs.track }}** track" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Successfully deployed to **Closed Testing - Alpha** track" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "📱 **Next Steps:**" >> $GITHUB_STEP_SUMMARY
+            echo "1. Go to [Google Play Console](https://play.google.com/console/)" >> $GITHUB_STEP_SUMMARY
+            echo "2. Navigate to **Testing** → **Closed testing** → **Alpha**" >> $GITHUB_STEP_SUMMARY
+            echo "3. Add testers via email or create a testing link" >> $GITHUB_STEP_SUMMARY
+            echo "4. Share the testing link with your testers" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ Deployment failed" >> $GITHUB_STEP_SUMMARY
           fi

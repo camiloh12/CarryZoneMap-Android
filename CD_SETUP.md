@@ -1,14 +1,28 @@
-# Continuous Deployment Setup Guide
+# Continuous Deployment Setup Guide (Closed Testing - Alpha)
 
-This guide explains how to set up automated deployment to Google Play Store using GitHub Actions.
+This guide explains how to set up automated deployment to Google Play Store **Closed Testing - Alpha track** using GitHub Actions.
+
+> **Note:** This pipeline is configured for the **Closed Testing - Alpha** track only. Production deployments are done manually via Google Play Console when ready.
 
 ## Overview
 
 The CD pipeline automatically:
 - ✅ Builds a signed release AAB (Android App Bundle)
 - ✅ Uploads to Google Play Console
-- ✅ Deploys to different tracks (internal/alpha/beta/production)
+- ✅ Deploys to **Closed Testing - Alpha** track
 - ✅ Manages release artifacts and ProGuard mappings
+
+## Understanding Google Play Tracks
+
+In Google Play Console, the release tracks are organized as:
+- **Internal testing** (track: `internal`) - Quick testing with internal team
+- **Closed testing** - Testing with specific users
+  - **Alpha** (track: `alpha`) ← **This is what we're using**
+  - **Beta** (track: `beta`)
+- **Open testing** - Public testing program
+- **Production** - Public release
+
+This pipeline targets the **Closed Testing - Alpha** track specifically.
 
 ## Prerequisites
 
@@ -123,9 +137,10 @@ Add the following secrets:
 
 The deployment workflow is configured in `.github/workflows/deploy.yml` and triggers on:
 
-- **Push to `main`/`master` branch** → Deploys to **internal** track
-- **Version tags** (`v1.0.0`) → Deploys to **production** track
-- **Manual trigger** → Choose any track (internal/alpha/beta/production)
+- **Push to `main`/`master` branch** → Deploys to **Closed Testing - Alpha** track
+- **Manual trigger** → Deploys to **Closed Testing - Alpha** track
+
+> **Production releases:** When ready for production, you'll manually promote the alpha build via Google Play Console.
 
 ## Using the CD Pipeline
 
@@ -138,43 +153,66 @@ git add .
 git commit -m "feat: Add new feature"
 git push origin main
 
-# This automatically deploys to internal track
-```
-
-### Release to Production (Using Tags)
-
-```bash
-# Create and push a version tag
-git tag v1.0.0
-git push origin v1.0.0
-
-# This automatically deploys to production track
+# This automatically deploys to Closed Testing - Alpha track
 ```
 
 ### Manual Deployment
 
 1. Go to your GitHub repository
 2. Click **Actions** tab
-3. Select **Deploy to Google Play** workflow
+3. Select **Deploy to Google Play (Closed Testing - Alpha)** workflow
 4. Click **Run workflow**
-5. Choose the track (internal/alpha/beta/production)
-6. Click **Run workflow**
+5. Click **Run workflow** again to confirm
+
+Both methods deploy to the same **Closed Testing - Alpha** track.
+
+### Add Testers to Closed Testing - Alpha
+
+After deployment, you need to add testers who can access your app:
+
+1. Go to [Google Play Console](https://play.google.com/console/)
+2. Select your app
+3. Navigate to **Testing** → **Closed testing** → **Alpha**
+4. Go to the **Testers** tab
+5. Choose one of these methods:
+   - **Email list**: Add testers by email address
+   - **Create list**: Create a reusable list of testers
+   - **Copy testing link**: Get a link to share with testers
+
+Testers will receive an email invite or can use the testing link to opt-in.
+
+### Promote to Production (Manual via Play Console)
+
+When your app is ready for production release:
+
+1. Go to [Google Play Console](https://play.google.com/console/)
+2. Select your app
+3. Navigate to **Testing** → **Closed testing** → **Alpha**
+4. Find the release you want to promote
+5. Click **Promote release** → **Production**
+6. Review release details and release notes
+7. Click **Start rollout to Production**
+
+This ensures you have full control over production releases and can thoroughly test before going live.
 
 ## Release Tracks Explained
 
-| Track | Purpose | Who Can Access |
-|-------|---------|----------------|
-| **Internal** | Quick testing with internal team | Specific email addresses |
-| **Alpha** | Early testing with small group | Opt-in testers via link |
-| **Beta** | Broader testing before release | Opt-in testers via link |
-| **Production** | Public release | All users |
+| Track | Google Play Console Name | Purpose | Who Can Access |
+|-------|--------------------------|---------|----------------|
+| **Internal** | Internal testing | Quick testing with internal team | Up to 100 specific email addresses |
+| **Alpha** | Closed testing - Alpha | Early testing with selected users | Opt-in testers via email or link |
+| **Beta** | Closed testing - Beta | Broader testing before release | Opt-in testers via email or link |
+| **Production** | Production | Public release | All users on Google Play |
 
-**Recommended flow:**
-1. Push to `main` → **Internal** (automated)
-2. Test internally, verify everything works
-3. Manually promote to **Alpha** or **Beta** via Play Console
-4. Gather feedback, fix bugs
-5. Create version tag → **Production** (automated)
+**Your Current Setup:**
+- ✅ Automated deployment to **Closed Testing - Alpha** track
+- ✅ Manual promotion to Production when ready
+
+**Recommended workflow:**
+1. Push to `main` → **Closed Testing - Alpha** (automated)
+2. Add testers via email or testing link
+3. Gather feedback, fix bugs, iterate
+4. When stable and ready, manually promote to **Production** via Play Console
 
 ## Optional: Release Notes
 
@@ -267,10 +305,69 @@ keytool -list -keystore test.keystore
 
 1. Go to [Google Play Console](https://play.google.com/console/)
 2. Select your app
-3. Go to **Release** → **[Track name]**
+3. Go to **Testing** → **Closed testing** → **Alpha**
 4. You'll see the new release with status (Draft/In review/Live)
 
 ## Advanced Configuration
+
+### Switch to a Different Testing Track
+
+If you want to deploy to a different track (e.g., Internal or Beta instead of Alpha):
+
+1. Edit `.github/workflows/deploy.yml`
+2. Find the line with `track: alpha`
+3. Change to your desired track:
+   - `track: internal` - For Internal testing (up to 100 users)
+   - `track: beta` - For Closed testing - Beta
+   - `track: alpha` - For Closed testing - Alpha (current)
+
+Example:
+```yaml
+- name: Upload to Google Play
+  uses: r0adkll/upload-google-play@v1
+  with:
+    # ... other config
+    track: beta  # Changed from alpha to beta
+```
+
+### Add Multiple Track Options (Manual Selection)
+
+To choose the track manually when running the workflow:
+
+1. Edit `.github/workflows/deploy.yml`
+2. Add this to the `workflow_dispatch` section:
+```yaml
+workflow_dispatch:
+  inputs:
+    track:
+      description: 'Testing track'
+      required: true
+      type: choice
+      default: 'alpha'
+      options:
+        - internal
+        - alpha
+        - beta
+```
+
+3. Update the track configuration:
+```yaml
+- name: Upload to Google Play
+  uses: r0adkll/upload-google-play@v1
+  with:
+    # ... other config
+    track: ${{ github.event.inputs.track || 'alpha' }}  # Use input or default to alpha
+```
+
+### Enable Production Deployments (When Ready)
+
+**⚠️ Important:** Only enable automated production deployments after:
+- Thorough testing in all testing tracks
+- Setting up staged rollouts (see below)
+- Configuring environment protection rules
+- Establishing a robust testing and QA process
+
+When ready, you can add `production` as an option and configure tag-based releases similar to the manual track selection above.
 
 ### Deploy Different Flavors
 
