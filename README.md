@@ -204,7 +204,14 @@ See [EMAIL_CONFIRMATION_SETUP.md](./EMAIL_CONFIRMATION_SETUP.md) for complete de
 
 5. **Clean, Build and Run**
    ```bash
+   # Debug build (for development/testing)
    ./gradlew clean assembleDebug
+
+   # Release APK (for direct distribution)
+   ./gradlew assembleRelease
+
+   # Release Bundle (for Google Play Store)
+   ./gradlew bundleRelease
    ```
 
    Or click the ▶️ Run button in Android Studio.
