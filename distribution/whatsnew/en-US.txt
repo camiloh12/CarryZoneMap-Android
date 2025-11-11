@@ -1,0 +1,9 @@
+Version 0.2.1
+
+✨ New:
+• US-only pin placement - pins can now only be dropped within the 50 US states and Washington DC
+
+🔧 Improvements:
+• Improved app stability and performance
+• Infrastructure updates for faster releases
+• Bug fixes and optimizations

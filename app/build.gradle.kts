@@ -27,8 +27,8 @@ android {
         applicationId = "com.carryzonemap.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.2.0"
+        versionCode = 4
+        versionName = "0.2.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -50,15 +50,15 @@ android {
         // Environment variables take precedence (for CI/CD)
         val keystoreFile = System.getenv("KEYSTORE_FILE") ?: localProperties.getProperty("KEYSTORE_FILE")
         val keystorePassword = System.getenv("KEYSTORE_PASSWORD") ?: localProperties.getProperty("KEYSTORE_PASSWORD")
-        val keyAlias = System.getenv("KEY_ALIAS") ?: localProperties.getProperty("KEY_ALIAS")
-        val keyPassword = System.getenv("KEY_PASSWORD") ?: localProperties.getProperty("KEY_PASSWORD")
+        val keyAliasValue = System.getenv("KEY_ALIAS") ?: localProperties.getProperty("KEY_ALIAS")
+        val keyPasswordValue = System.getenv("KEY_PASSWORD") ?: localProperties.getProperty("KEY_PASSWORD")
 
         if (!keystoreFile.isNullOrEmpty()) {
             create("release") {
                 storeFile = file(keystoreFile)
                 storePassword = keystorePassword
-                keyAlias = keyAlias
-                keyPassword = keyPassword
+                keyAlias = keyAliasValue
+                keyPassword = keyPasswordValue
             }
         }
     }

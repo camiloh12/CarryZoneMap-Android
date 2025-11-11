@@ -1,8 +1,10 @@
 # Continuous Deployment Setup Guide (Closed Testing - Alpha)
 
-This guide explains how to set up automated deployment to Google Play Store **Closed Testing - Alpha track** using GitHub Actions.
+This guide explains how to set up automated deployment to Google Play Store **Closed Testing - Alpha track** using GitHub Actions with **Workload Identity Federation** (keyless authentication).
 
 > **Note:** This pipeline is configured for the **Closed Testing - Alpha** track only. Production deployments are done manually via Google Play Console when ready.
+>
+> **Authentication:** Uses Workload Identity Federation (no service account keys needed!) - secure, recommended by Google, and bypasses organization policies.
 
 ## Overview
 
@@ -29,49 +31,28 @@ This pipeline targets the **Closed Testing - Alpha** track specifically.
 1. **Google Play Console account** with an existing app listing
 2. **Android keystore** for signing releases
 3. **GitHub repository** with Actions enabled
+4. **gcloud CLI** installed on your computer (for setup commands)
 
 ## Setup Steps
 
-### 1. Create a Google Play Service Account
+### 1. Set Up Workload Identity Federation (No Keys Required!)
 
-The service account allows GitHub Actions to upload builds to Google Play on your behalf.
+We use **Workload Identity Federation** instead of service account keys. This is:
+- ✅ More secure (no long-lived credentials)
+- ✅ Google's recommended approach
+- ✅ Bypasses organization policies that block key creation
+- ✅ No keys to rotate or manage
 
-#### a) Enable Google Play Android Developer API
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Select or create a project
-3. Navigate to **APIs & Services** → **Library**
-4. Search for "Google Play Android Developer API"
-5. Click **Enable**
+**Complete setup instructions:** [WORKLOAD_IDENTITY_SETUP.md](WORKLOAD_IDENTITY_SETUP.md)
 
-#### b) Create Service Account
-1. In Google Cloud Console, go to **IAM & Admin** → **Service Accounts**
-2. Click **Create Service Account**
-3. Name: `github-actions-deploy` (or any name)
-4. Click **Create and Continue**
-5. Skip granting roles (we'll configure in Play Console)
-6. Click **Done**
+**Quick Summary:**
+1. Enable required Google Cloud APIs
+2. Create service account
+3. Create Workload Identity Pool and Provider for GitHub
+4. Grant service account permissions in Play Console
+5. Add secrets to GitHub
 
-#### c) Create JSON Key
-1. Click on the newly created service account
-2. Go to **Keys** tab
-3. Click **Add Key** → **Create new key**
-4. Select **JSON** format
-5. Click **Create** - this downloads the JSON key file
-6. **IMPORTANT:** Keep this file secure! Never commit it to git.
-
-#### d) Grant Access in Play Console
-1. Go to [Google Play Console](https://play.google.com/console/)
-2. Select your app
-3. Go to **Setup** → **API access**
-4. Click **Link** next to your Google Cloud project (if not already linked)
-5. Under **Service accounts**, find your service account
-6. Click **Manage Play Console permissions**
-7. Go to **App permissions** tab
-8. Select your app
-9. Grant the following permissions:
-   - **Releases** → Manage production releases, Manage testing track releases
-   - **App access** → View app information
-10. Click **Invite user** → **Send invite**
+**This replaces the old "Create JSON Key" step** - no keys needed! 🎉
 
 ### 2. Prepare Your Android Keystore
 
@@ -118,7 +99,9 @@ Add the following secrets:
 
 | Secret Name | Description | Example |
 |-------------|-------------|---------|
-| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Contents of the JSON key file from step 1c | `{"type": "service_account", "project_id": "..."}` |
+| `WORKLOAD_IDENTITY_PROVIDER` | Workload Identity Provider full path | `projects/123.../locations/global/workloadIdentityPools/github-pool/providers/github-provider` |
+| `SERVICE_ACCOUNT_EMAIL` | Service account email address | `github-actions-deploy@your-project.iam.gserviceaccount.com` |
+| `GCP_PROJECT_ID` | Your Google Cloud project ID | `your-gcp-project-id` |
 | `KEYSTORE_BASE64` | Base64-encoded keystore from step 2 | `MIIKWgIBAzCCCh4GCSqGSIb3DQE...` |
 | `KEYSTORE_PASSWORD` | Keystore password | `my_keystore_pass` |
 | `KEY_ALIAS` | Key alias from keystore | `upload` |
@@ -126,6 +109,8 @@ Add the following secrets:
 | `SUPABASE_URL` | Your Supabase project URL | `https://xxx.supabase.co` |
 | `SUPABASE_ANON_KEY` | Your Supabase anonymous key | `eyJhbGciOiJIUzI1NiIs...` |
 | `MAPTILER_API_KEY` | MapTiler API key (optional) | `your_maptiler_key` |
+
+> **Note:** The values for `WORKLOAD_IDENTITY_PROVIDER`, `SERVICE_ACCOUNT_EMAIL`, and `GCP_PROJECT_ID` come from the Workload Identity Federation setup (see [WORKLOAD_IDENTITY_SETUP.md](WORKLOAD_IDENTITY_SETUP.md)).
 
 **To add a secret:**
 1. Click **New repository secret**

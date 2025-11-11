@@ -26,7 +26,10 @@
       "Bash(git checkout -b release/v0.2.0)",
       "Bash(adb logcat:*)",
       "Bash(timeout 10 adb logcat:*)",
-      "Bash(adb install:*)"
+      "Bash(adb install:*)",
+      "Bash(git checkout:*)",
+      "WebSearch",
+      "WebFetch(domain:developers.google.com)"
     ],
     "deny": [],
     "ask": []

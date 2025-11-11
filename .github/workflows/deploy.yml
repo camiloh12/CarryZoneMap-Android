@@ -15,6 +15,11 @@ jobs:
     name: Deploy to Play Store
     runs-on: ubuntu-latest
 
+    # Required for Workload Identity Federation
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,6 +33,14 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
+          token_format: 'access_token'
+          access_token_lifetime: '3600s'
 
       - name: Create local.properties
         run: |
@@ -55,7 +68,7 @@ jobs:
       - name: Upload to Google Play (Closed Testing - Alpha)
         uses: r0adkll/upload-google-play@v1
         with:
-          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          serviceAccountEmail: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
           packageName: com.carryzonemap.app
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
           track: alpha
@@ -87,6 +100,7 @@ jobs:
           echo "- **Track:** Closed Testing - Alpha" >> $GITHUB_STEP_SUMMARY
           echo "- **Version:** $(grep versionName app/build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Auth:** Workload Identity Federation (Keyless) 🔐" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ job.status }}" == "success" ]; then
