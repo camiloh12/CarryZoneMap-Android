@@ -27,7 +27,9 @@
       "Bash(adb logcat:*)",
       "Bash(timeout 10 adb logcat:*)",
       "Bash(adb install:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "WebSearch",
+      "WebFetch(domain:developers.google.com)"
     ],
     "deny": [],
     "ask": []
