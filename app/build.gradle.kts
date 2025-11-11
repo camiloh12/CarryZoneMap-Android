@@ -27,8 +27,8 @@ android {
         applicationId = "com.carryzonemap.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.2.0"
+        versionCode = 4
+        versionName = "0.2.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -46,14 +46,19 @@ android {
     }
 
     signingConfigs {
-        // Only create release signing config if keystore file is specified
-        val keystoreFile = localProperties.getProperty("KEYSTORE_FILE")
+        // Release signing config - supports both local.properties and environment variables
+        // Environment variables take precedence (for CI/CD)
+        val keystoreFile = System.getenv("KEYSTORE_FILE") ?: localProperties.getProperty("KEYSTORE_FILE")
+        val keystorePassword = System.getenv("KEYSTORE_PASSWORD") ?: localProperties.getProperty("KEYSTORE_PASSWORD")
+        val keyAliasValue = System.getenv("KEY_ALIAS") ?: localProperties.getProperty("KEY_ALIAS")
+        val keyPasswordValue = System.getenv("KEY_PASSWORD") ?: localProperties.getProperty("KEY_PASSWORD")
+
         if (!keystoreFile.isNullOrEmpty()) {
             create("release") {
                 storeFile = file(keystoreFile)
-                storePassword = localProperties.getProperty("KEYSTORE_PASSWORD")
-                keyAlias = localProperties.getProperty("KEY_ALIAS")
-                keyPassword = localProperties.getProperty("KEY_PASSWORD")
+                storePassword = keystorePassword
+                keyAlias = keyAliasValue
+                keyPassword = keyPasswordValue
             }
         }
     }
@@ -61,7 +66,7 @@ android {
     buildTypes {
         release {
             // Only use release signing if it was configured
-            val keystoreFile = localProperties.getProperty("KEYSTORE_FILE")
+            val keystoreFile = System.getenv("KEYSTORE_FILE") ?: localProperties.getProperty("KEYSTORE_FILE")
             if (!keystoreFile.isNullOrEmpty()) {
                 signingConfig = signingConfigs.getByName("release")
             }
