@@ -65,10 +65,17 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew bundleRelease --stacktrace
 
+      - name: Read service account credentials
+        id: auth
+        run: |
+          echo "SERVICE_ACCOUNT_JSON<<EOF" >> $GITHUB_OUTPUT
+          cat $GOOGLE_APPLICATION_CREDENTIALS >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Upload to Google Play (Closed Testing - Alpha)
         uses: r0adkll/upload-google-play@v1
         with:
-          serviceAccountEmail: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
+          serviceAccountJsonPlainText: ${{ steps.auth.outputs.SERVICE_ACCOUNT_JSON }}
           packageName: com.carryzonemap.app
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
           track: alpha
