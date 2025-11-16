@@ -176,13 +176,15 @@ fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
             // Pin creation/editing dialog
             PinDialog(
                 dialogState = uiState.pinDialogState,
-                onStatusSelected = { status -> viewModel.onDialogStatusSelected(status) },
-                onRestrictionTagSelected = { tag -> viewModel.onDialogRestrictionTagSelected(tag) },
-                onSecurityScreeningChanged = { hasScreening -> viewModel.onDialogSecurityScreeningChanged(hasScreening) },
-                onPostedSignageChanged = { hasSignage -> viewModel.onDialogPostedSignageChanged(hasSignage) },
-                onConfirm = { viewModel.confirmPinDialog() },
-                onDelete = { viewModel.deletePinFromDialog() },
-                onDismiss = { viewModel.dismissPinDialog() },
+                callbacks = PinDialogCallbacks(
+                    onStatusSelected = { status -> viewModel.onDialogStatusSelected(status) },
+                    onRestrictionTagSelected = { tag -> viewModel.onDialogRestrictionTagSelected(tag) },
+                    onSecurityScreeningChanged = { hasScreening -> viewModel.onDialogSecurityScreeningChanged(hasScreening) },
+                    onPostedSignageChanged = { hasSignage -> viewModel.onDialogPostedSignageChanged(hasSignage) },
+                    onConfirm = { viewModel.confirmPinDialog() },
+                    onDelete = { viewModel.deletePinFromDialog() },
+                    onDismiss = { viewModel.dismissPinDialog() },
+                ),
             )
         }
     }
