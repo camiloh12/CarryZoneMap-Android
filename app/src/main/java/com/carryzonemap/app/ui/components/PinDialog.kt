@@ -118,19 +118,6 @@ private data class PinDialogContentConfig(
     val isEditing: Boolean,
 )
 
-/**
- * Callbacks for the pin dialog interactions.
- */
-private data class PinDialogCallbacks(
-    val onStatusSelected: (PinStatus) -> Unit,
-    val onRestrictionTagSelected: (RestrictionTag?) -> Unit,
-    val onSecurityScreeningChanged: (Boolean) -> Unit,
-    val onPostedSignageChanged: (Boolean) -> Unit,
-    val onConfirm: () -> Unit,
-    val onDelete: () -> Unit,
-    val onDismiss: () -> Unit,
-)
-
 @Composable
 private fun PinDialogContent(
     config: PinDialogContentConfig,
