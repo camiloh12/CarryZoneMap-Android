@@ -41,28 +41,32 @@ import com.carryzonemap.app.domain.model.PinStatus
 import com.carryzonemap.app.domain.model.RestrictionTag
 import com.carryzonemap.app.ui.state.PinDialogState
 
+// UI Constants
+private const val DROPDOWN_MENU_WIDTH_FRACTION = 0.9f
+
+/**
+ * Callbacks for PinDialog interactions.
+ */
+data class PinDialogCallbacks(
+    val onStatusSelected: (PinStatus) -> Unit,
+    val onRestrictionTagSelected: (RestrictionTag?) -> Unit,
+    val onSecurityScreeningChanged: (Boolean) -> Unit,
+    val onPostedSignageChanged: (Boolean) -> Unit,
+    val onConfirm: () -> Unit,
+    val onDelete: () -> Unit,
+    val onDismiss: () -> Unit,
+)
+
 /**
  * Dialog for creating or editing a pin.
  *
  * @param dialogState The current state of the dialog
- * @param onStatusSelected Callback when a status is selected
- * @param onRestrictionTagSelected Callback when a restriction tag is selected
- * @param onSecurityScreeningChanged Callback when security screening checkbox changes
- * @param onPostedSignageChanged Callback when posted signage checkbox changes
- * @param onConfirm Callback when the confirm button is clicked
- * @param onDelete Callback when the delete button is clicked (only shown for editing)
- * @param onDismiss Callback when the dialog is dismissed
+ * @param callbacks Callbacks for dialog interactions
  */
 @Composable
 fun PinDialog(
     dialogState: PinDialogState,
-    onStatusSelected: (PinStatus) -> Unit,
-    onRestrictionTagSelected: (RestrictionTag?) -> Unit,
-    onSecurityScreeningChanged: (Boolean) -> Unit,
-    onPostedSignageChanged: (Boolean) -> Unit,
-    onConfirm: () -> Unit,
-    onDelete: () -> Unit,
-    onDismiss: () -> Unit,
+    callbacks: PinDialogCallbacks,
 ) {
     when (dialogState) {
         is PinDialogState.Hidden -> {
@@ -80,16 +84,7 @@ fun PinDialog(
                         hasPostedSignage = dialogState.hasPostedSignage,
                         isEditing = false,
                     ),
-                callbacks =
-                    PinDialogCallbacks(
-                        onStatusSelected = onStatusSelected,
-                        onRestrictionTagSelected = onRestrictionTagSelected,
-                        onSecurityScreeningChanged = onSecurityScreeningChanged,
-                        onPostedSignageChanged = onPostedSignageChanged,
-                        onConfirm = onConfirm,
-                        onDelete = onDelete,
-                        onDismiss = onDismiss,
-                    ),
+                callbacks = callbacks,
             )
         }
         is PinDialogState.Editing -> {
@@ -104,16 +99,7 @@ fun PinDialog(
                         hasPostedSignage = dialogState.hasPostedSignage,
                         isEditing = true,
                     ),
-                callbacks =
-                    PinDialogCallbacks(
-                        onStatusSelected = onStatusSelected,
-                        onRestrictionTagSelected = onRestrictionTagSelected,
-                        onSecurityScreeningChanged = onSecurityScreeningChanged,
-                        onPostedSignageChanged = onPostedSignageChanged,
-                        onConfirm = onConfirm,
-                        onDelete = onDelete,
-                        onDismiss = onDismiss,
-                    ),
+                callbacks = callbacks,
             )
         }
     }
@@ -130,19 +116,6 @@ private data class PinDialogContentConfig(
     val hasSecurityScreening: Boolean,
     val hasPostedSignage: Boolean,
     val isEditing: Boolean,
-)
-
-/**
- * Callbacks for the pin dialog interactions.
- */
-private data class PinDialogCallbacks(
-    val onStatusSelected: (PinStatus) -> Unit,
-    val onRestrictionTagSelected: (RestrictionTag?) -> Unit,
-    val onSecurityScreeningChanged: (Boolean) -> Unit,
-    val onPostedSignageChanged: (Boolean) -> Unit,
-    val onConfirm: () -> Unit,
-    val onDelete: () -> Unit,
-    val onDismiss: () -> Unit,
 )
 
 @Composable
@@ -350,7 +323,7 @@ private fun RestrictionTagDropdown(
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = { expanded = false },
-        modifier = Modifier.fillMaxWidth(0.9f),
+        modifier = Modifier.fillMaxWidth(DROPDOWN_MENU_WIDTH_FRACTION),
     ) {
         RestrictionTag.entries.forEach { tag ->
             DropdownMenuItem(

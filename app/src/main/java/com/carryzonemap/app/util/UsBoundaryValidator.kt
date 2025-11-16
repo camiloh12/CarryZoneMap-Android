@@ -75,27 +75,28 @@ object UsBoundaryValidator {
         val point = Point.fromLngLat(longitude, latitude)
 
         // Check each polygon (continental US, Alaska, Hawaii, etc.)
-        for (polygon in boundaryPolygons.coordinates()) {
-            if (polygon.isEmpty()) continue
+        return boundaryPolygons.coordinates().any { polygon ->
+            isPointInPolygonWithHoles(point, polygon)
+        }
+    }
 
-            // First ring is exterior, check if point is inside
-            val exteriorRing = polygon[0]
-            if (isPointInPolygon(point, exteriorRing)) {
-                // Check if point is in any holes (should be outside holes)
-                var inHole = false
-                for (i in 1 until polygon.size) {
-                    if (isPointInPolygon(point, polygon[i])) {
-                        inHole = true
-                        break
-                    }
-                }
-                if (!inHole) {
-                    return true // Point is in polygon and not in any hole
-                }
-            }
+    /**
+     * Checks if a point is within a polygon, accounting for holes.
+     */
+    private fun isPointInPolygonWithHoles(point: Point, polygon: List<List<Point>>): Boolean {
+        if (polygon.isEmpty()) return false
+
+        // First ring is exterior, check if point is inside
+        val exteriorRing = polygon[0]
+        val isInExterior = isPointInPolygon(point, exteriorRing)
+        if (!isInExterior) return false
+
+        // Check if point is in any holes (should be outside holes)
+        val isInHole = (1 until polygon.size).any { i ->
+            isPointInPolygon(point, polygon[i])
         }
 
-        return false
+        return !isInHole // Point is in polygon and not in any hole
     }
 
     /**

@@ -29,14 +29,14 @@ object UsOverlayGenerator {
                 "us_boundary_simplified.geojson"
             )
 
-            if (usBoundaryFeature == null) {
-                Timber.w("Failed to load US boundary, falling back to simplified overlay")
-                return generateSimplifiedNonUsOverlay()
-            }
-
-            val geometry = usBoundaryFeature.geometry()
+            val geometry = usBoundaryFeature?.geometry()
             if (geometry !is MultiPolygon) {
-                Timber.w("US boundary is not a MultiPolygon, falling back to simplified overlay")
+                val reason = if (usBoundaryFeature == null) {
+                    "Failed to load US boundary"
+                } else {
+                    "US boundary is not a MultiPolygon"
+                }
+                Timber.w("$reason, falling back to simplified overlay")
                 return generateSimplifiedNonUsOverlay()
             }
 
