@@ -29,7 +29,8 @@
       "Bash(adb install:*)",
       "Bash(git checkout:*)",
       "WebSearch",
-      "WebFetch(domain:developers.google.com)"
+      "WebFetch(domain:developers.google.com)",
+      "Bash(git cherry-pick:*)"
     ],
     "deny": [],
     "ask": []
