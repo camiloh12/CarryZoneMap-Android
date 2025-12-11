@@ -434,7 +434,7 @@ private fun initializeMap(
         Timber.d("Map long-pressed at: ${point.latitude}, ${point.longitude}")
         viewModel.showCreatePinDialogManual(
             longitude = point.longitude,
-            latitude = point.latitude
+            latitude = point.latitude,
         )
         true // Consume the event
     }

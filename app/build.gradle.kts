@@ -134,59 +134,56 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         csv.required.set(false)
     }
 
-    val fileFilter = listOf(
-        // Android framework
-        "**/R.class",
-        "**/R$*.class",
-        "**/BuildConfig.*",
-        "**/Manifest*.*",
-        "**/*Test*.*",
-        "android/**/*.*",
+    val fileFilter =
+        listOf(
+            // Android framework
+            "**/R.class",
+            "**/R$*.class",
+            "**/BuildConfig.*",
+            "**/Manifest*.*",
+            "**/*Test*.*",
+            "android/**/*.*",
+            // Hilt/Dagger generated code
+            "**/*_HiltModules*",
+            "**/*_Factory*",
+            "**/*_MembersInjector*",
+            "hilt_aggregated_deps/**",
+            "dagger/hilt/**",
+            "**/di/**",
+            // Room generated code
+            "**/*_Impl*",
+            "**/*Database*_Impl*",
+            // Compose generated code
+            "**/ComposableSingletons*",
+            "**/*\$\$*",
+            // Data Transfer Objects (DTOs) - simple data classes
+            "**/dto/**",
+            // Application class
+            "**/CarryZoneApplication*",
+            // UI Screens and Composables (require UI tests, not unit tests)
+            "**/ui/MapScreen*",
+            "**/ui/auth/LoginScreen*",
+            "**/ui/auth/SignUpScreen*",
+            "**/ui/components/PinDialog*",
+            "**/MainActivity*",
+            // Legacy map code (minimal logic, being phased out)
+            "**/map/FeatureLayerManager*",
+        )
 
-        // Hilt/Dagger generated code
-        "**/*_HiltModules*",
-        "**/*_Factory*",
-        "**/*_MembersInjector*",
-        "hilt_aggregated_deps/**",
-        "dagger/hilt/**",
-        "**/di/**",
-
-        // Room generated code
-        "**/*_Impl*",
-        "**/*Database*_Impl*",
-
-        // Compose generated code
-        "**/ComposableSingletons*",
-        "**/*\$\$*",
-
-        // Data Transfer Objects (DTOs) - simple data classes
-        "**/dto/**",
-
-        // Application class
-        "**/CarryZoneApplication*",
-
-        // UI Screens and Composables (require UI tests, not unit tests)
-        "**/ui/MapScreen*",
-        "**/ui/auth/LoginScreen*",
-        "**/ui/auth/SignUpScreen*",
-        "**/ui/components/PinDialog*",
-        "**/MainActivity*",
-
-        // Legacy map code (minimal logic, being phased out)
-        "**/map/FeatureLayerManager*"
-    )
-
-    val debugTree = fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
-        exclude(fileFilter)
-    }
+    val debugTree =
+        fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
+            exclude(fileFilter)
+        }
 
     val mainSrc = "${project.projectDir}/src/main/java"
 
     sourceDirectories.setFrom(files(mainSrc))
     classDirectories.setFrom(files(debugTree))
-    executionData.setFrom(fileTree(layout.buildDirectory) {
-        include("jacoco/testDebugUnitTest.exec")
-    })
+    executionData.setFrom(
+        fileTree(layout.buildDirectory) {
+            include("jacoco/testDebugUnitTest.exec")
+        },
+    )
 }
 
 // Task for coverage verification with minimum thresholds
@@ -210,23 +207,21 @@ tasks.register<JacocoCoverageVerification>("jacocoCoverageVerification") {
                 minimum = "0.70".toBigDecimal() // 70% per class
             }
 
-            excludes = listOf(
-                // Exclude DTOs and simple data classes
-                "com.carryzonemap.app.data.remote.dto.*",
-
-                // Exclude UI composables (hard to unit test)
-                "com.carryzonemap.app.ui.MapScreen*",
-                "com.carryzonemap.app.ui.auth.*Screen*",
-                "com.carryzonemap.app.ui.components.*",
-
-                // Exclude Application class
-                "com.carryzonemap.app.CarryZoneApplication",
-
-                // Exclude generated code
-                "*.*_Factory",
-                "*.*_HiltModules*",
-                "*.*_Impl"
-            )
+            excludes =
+                listOf(
+                    // Exclude DTOs and simple data classes
+                    "com.carryzonemap.app.data.remote.dto.*",
+                    // Exclude UI composables (hard to unit test)
+                    "com.carryzonemap.app.ui.MapScreen*",
+                    "com.carryzonemap.app.ui.auth.*Screen*",
+                    "com.carryzonemap.app.ui.components.*",
+                    // Exclude Application class
+                    "com.carryzonemap.app.CarryZoneApplication",
+                    // Exclude generated code
+                    "*.*_Factory",
+                    "*.*_HiltModules*",
+                    "*.*_Impl",
+                )
         }
     }
 }

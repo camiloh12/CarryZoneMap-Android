@@ -10,7 +10,6 @@ import java.io.IOException
  * Utility for loading GeoJSON files from assets.
  */
 object GeoJsonLoader {
-
     /**
      * Loads a GeoJSON file from the assets folder.
      *
@@ -20,7 +19,7 @@ object GeoJsonLoader {
      */
     fun loadGeoJsonFromAssets(
         context: Context,
-        fileName: String
+        fileName: String,
     ): FeatureCollection? {
         return try {
             val jsonString = context.assets.open(fileName).bufferedReader().use { it.readText() }
@@ -43,7 +42,7 @@ object GeoJsonLoader {
      */
     fun loadFirstFeatureFromAssets(
         context: Context,
-        fileName: String
+        fileName: String,
     ): Feature? {
         val collection = loadGeoJsonFromAssets(context, fileName)
         return collection?.features()?.firstOrNull()

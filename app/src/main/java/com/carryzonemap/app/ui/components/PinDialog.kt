@@ -43,6 +43,11 @@ import com.carryzonemap.app.domain.model.RestrictionTag
 import com.carryzonemap.app.ui.state.PinDialogState
 
 /**
+ * Dropdown menu width as a fraction of parent width.
+ */
+private const val DROPDOWN_WIDTH_FRACTION = 0.9f
+
+/**
  * Dialog for creating or editing a pin.
  *
  * @param dialogState The current state of the dialog
@@ -55,6 +60,7 @@ import com.carryzonemap.app.ui.state.PinDialogState
  * @param onDelete Callback when the delete button is clicked (only shown for editing)
  * @param onDismiss Callback when the dialog is dismissed
  */
+@Suppress("LongParameterList") // Composable requires all callbacks for proper state management
 @Composable
 fun PinDialog(
     dialogState: PinDialogState,
@@ -237,9 +243,10 @@ private fun PinDialogContent(
                         )
                         Text(
                             text = "Active security screening",
-                            modifier = Modifier.clickable {
-                                callbacks.onSecurityScreeningChanged(!config.hasSecurityScreening)
-                            },
+                            modifier =
+                                Modifier.clickable {
+                                    callbacks.onSecurityScreeningChanged(!config.hasSecurityScreening)
+                                },
                         )
                     }
 
@@ -253,9 +260,10 @@ private fun PinDialogContent(
                         )
                         Text(
                             text = "Posted signage visible",
-                            modifier = Modifier.clickable {
-                                callbacks.onPostedSignageChanged(!config.hasPostedSignage)
-                            },
+                            modifier =
+                                Modifier.clickable {
+                                    callbacks.onPostedSignageChanged(!config.hasPostedSignage)
+                                },
                         )
                     }
                 }
@@ -372,7 +380,7 @@ private fun RestrictionTagDropdown(
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = { expanded = false },
-        modifier = Modifier.fillMaxWidth(0.9f),
+        modifier = Modifier.fillMaxWidth(DROPDOWN_WIDTH_FRACTION),
     ) {
         RestrictionTag.entries.forEach { tag ->
             DropdownMenuItem(

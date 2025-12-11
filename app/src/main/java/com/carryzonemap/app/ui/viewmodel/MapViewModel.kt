@@ -45,6 +45,7 @@ import javax.inject.Inject
  * @property overpassDataSource Data source for fetching POIs from OpenStreetMap
  * @property fusedLocationClient Client for accessing device location
  */
+@Suppress("TooManyFunctions") // ViewModel coordinates many UI interactions and state updates
 @HiltViewModel
 class MapViewModel
     @Inject
@@ -249,7 +250,7 @@ class MapViewModel
             if (currentState is PinDialogState.Creating) {
                 _uiState.update {
                     it.copy(
-                        pinDialogState = currentState.copy(typedName = name)
+                        pinDialogState = currentState.copy(typedName = name),
                     )
                 }
             }
@@ -335,7 +336,7 @@ class MapViewModel
                             // Defensive validation: ensure location is within US boundaries
                             if (!UsBoundaryValidator.isWithinUsBoundaries(
                                     dialogState.location.latitude,
-                                    dialogState.location.longitude
+                                    dialogState.location.longitude,
                                 )
                             ) {
                                 _uiState.update {
