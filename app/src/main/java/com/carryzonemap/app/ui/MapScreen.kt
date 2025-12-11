@@ -176,6 +176,7 @@ fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
             // Pin creation/editing dialog
             PinDialog(
                 dialogState = uiState.pinDialogState,
+                onNameChanged = { name -> viewModel.onDialogNameChanged(name) },
                 onStatusSelected = { status -> viewModel.onDialogStatusSelected(status) },
                 onRestrictionTagSelected = { tag -> viewModel.onDialogRestrictionTagSelected(tag) },
                 onSecurityScreeningChanged = { hasScreening -> viewModel.onDialogSecurityScreeningChanged(hasScreening) },
@@ -426,6 +427,16 @@ private fun initializeMap(
     map.addOnMapClickListener { point ->
         Timber.d("Map clicked at: ${point.latitude}, ${point.longitude}")
         helpers.featureClickHandler.handleClick(map, point)
+    }
+
+    // Set up long-press handler for manual pin creation
+    map.addOnMapLongClickListener { point ->
+        Timber.d("Map long-pressed at: ${point.latitude}, ${point.longitude}")
+        viewModel.showCreatePinDialogManual(
+            longitude = point.longitude,
+            latitude = point.latitude
+        )
+        true // Consume the event
     }
 
     Timber.d("Map initialization complete!")

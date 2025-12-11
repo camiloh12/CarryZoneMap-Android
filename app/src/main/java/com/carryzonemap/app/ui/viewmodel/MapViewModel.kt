@@ -176,8 +176,12 @@ class MapViewModel
         }
 
         /**
-         * Shows the dialog to create a new pin at the specified location.
+         * Shows the dialog to create a new pin at the specified location from a POI.
          * Validates that the location is within US boundaries before showing the dialog.
+         *
+         * @param name The name of the POI
+         * @param longitude Longitude coordinate
+         * @param latitude Latitude coordinate
          */
         fun showCreatePinDialog(
             name: String,
@@ -195,7 +199,33 @@ class MapViewModel
 
             val location = Location.fromLngLat(longitude, latitude)
             _uiState.update {
-                it.copy(pinDialogState = PinDialogState.Creating(name, location))
+                it.copy(pinDialogState = PinDialogState.Creating(poiName = name, location = location))
+            }
+        }
+
+        /**
+         * Shows the dialog to create a new pin at the specified location via manual placement (long-press).
+         * Validates that the location is within US boundaries before showing the dialog.
+         *
+         * @param longitude Longitude coordinate
+         * @param latitude Latitude coordinate
+         */
+        fun showCreatePinDialogManual(
+            longitude: Double,
+            latitude: Double,
+        ) {
+            // Validate location is within US boundaries
+            if (!UsBoundaryValidator.isWithinUsBoundaries(latitude, longitude)) {
+                _uiState.update {
+                    it.copy(error = "Pins can only be placed within the 50 US states and Washington DC")
+                }
+                Timber.w("Attempted to create pin outside US boundaries: ($latitude, $longitude)")
+                return
+            }
+
+            val location = Location.fromLngLat(longitude, latitude)
+            _uiState.update {
+                it.copy(pinDialogState = PinDialogState.Creating(poiName = null, location = location))
             }
         }
 
@@ -207,6 +237,20 @@ class MapViewModel
             if (pin != null) {
                 _uiState.update {
                     it.copy(pinDialogState = PinDialogState.Editing(pin))
+                }
+            }
+        }
+
+        /**
+         * Updates the typed name in the dialog (for manual pin creation).
+         */
+        fun onDialogNameChanged(name: String) {
+            val currentState = _uiState.value.pinDialogState
+            if (currentState is PinDialogState.Creating) {
+                _uiState.update {
+                    it.copy(
+                        pinDialogState = currentState.copy(typedName = name)
+                    )
                 }
             }
         }
@@ -301,12 +345,23 @@ class MapViewModel
                                 return@launch
                             }
 
+                            // Determine the pin name: use POI name if available, otherwise use typed name
+                            val pinName = dialogState.poiName ?: dialogState.typedName.trim()
+
+                            // Validate that a name is provided
+                            if (pinName.isBlank()) {
+                                _uiState.update {
+                                    it.copy(error = "Please enter a name for the pin")
+                                }
+                                return@launch
+                            }
+
                             // Get current user ID for createdBy field
                             val userId = authRepository.currentUserId
 
                             val pin =
                                 Pin(
-                                    name = dialogState.name,
+                                    name = pinName,
                                     location =
                                         Location.fromLngLat(
                                             longitude = dialogState.location.longitude,

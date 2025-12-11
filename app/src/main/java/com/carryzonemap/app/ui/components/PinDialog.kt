@@ -25,6 +25,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,6 +46,7 @@ import com.carryzonemap.app.ui.state.PinDialogState
  * Dialog for creating or editing a pin.
  *
  * @param dialogState The current state of the dialog
+ * @param onNameChanged Callback when the name text field changes (for manual pin creation)
  * @param onStatusSelected Callback when a status is selected
  * @param onRestrictionTagSelected Callback when a restriction tag is selected
  * @param onSecurityScreeningChanged Callback when security screening checkbox changes
@@ -56,6 +58,7 @@ import com.carryzonemap.app.ui.state.PinDialogState
 @Composable
 fun PinDialog(
     dialogState: PinDialogState,
+    onNameChanged: (String) -> Unit,
     onStatusSelected: (PinStatus) -> Unit,
     onRestrictionTagSelected: (RestrictionTag?) -> Unit,
     onSecurityScreeningChanged: (Boolean) -> Unit,
@@ -73,7 +76,8 @@ fun PinDialog(
                 config =
                     PinDialogContentConfig(
                         title = "Create Pin",
-                        poiName = dialogState.name,
+                        poiName = dialogState.poiName,
+                        typedName = dialogState.typedName,
                         selectedStatus = dialogState.selectedStatus,
                         selectedRestrictionTag = dialogState.selectedRestrictionTag,
                         hasSecurityScreening = dialogState.hasSecurityScreening,
@@ -82,6 +86,7 @@ fun PinDialog(
                     ),
                 callbacks =
                     PinDialogCallbacks(
+                        onNameChanged = onNameChanged,
                         onStatusSelected = onStatusSelected,
                         onRestrictionTagSelected = onRestrictionTagSelected,
                         onSecurityScreeningChanged = onSecurityScreeningChanged,
@@ -98,6 +103,7 @@ fun PinDialog(
                     PinDialogContentConfig(
                         title = "Edit Pin",
                         poiName = dialogState.pin.name,
+                        typedName = "",
                         selectedStatus = dialogState.selectedStatus,
                         selectedRestrictionTag = dialogState.selectedRestrictionTag,
                         hasSecurityScreening = dialogState.hasSecurityScreening,
@@ -106,6 +112,7 @@ fun PinDialog(
                     ),
                 callbacks =
                     PinDialogCallbacks(
+                        onNameChanged = onNameChanged,
                         onStatusSelected = onStatusSelected,
                         onRestrictionTagSelected = onRestrictionTagSelected,
                         onSecurityScreeningChanged = onSecurityScreeningChanged,
@@ -124,7 +131,8 @@ fun PinDialog(
  */
 private data class PinDialogContentConfig(
     val title: String,
-    val poiName: String,
+    val poiName: String?,
+    val typedName: String,
     val selectedStatus: PinStatus,
     val selectedRestrictionTag: RestrictionTag?,
     val hasSecurityScreening: Boolean,
@@ -136,6 +144,7 @@ private data class PinDialogContentConfig(
  * Callbacks for the pin dialog interactions.
  */
 private data class PinDialogCallbacks(
+    val onNameChanged: (String) -> Unit,
     val onStatusSelected: (PinStatus) -> Unit,
     val onRestrictionTagSelected: (RestrictionTag?) -> Unit,
     val onSecurityScreeningChanged: (Boolean) -> Unit,
@@ -160,12 +169,25 @@ private fun PinDialogContent(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // Display POI name
-                Text(
-                    text = config.poiName,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                // Name section: show POI name or text field for manual entry
+                if (config.poiName != null) {
+                    // Display POI name (existing behavior)
+                    Text(
+                        text = config.poiName,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                } else if (!config.isEditing) {
+                    // Show text field for manual pin creation
+                    OutlinedTextField(
+                        value = config.typedName,
+                        onValueChange = callbacks.onNameChanged,
+                        label = { Text("Pin name") },
+                        placeholder = { Text("Enter a name for this location") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                }
 
                 Text(
                     text = "Select carry zone status:",

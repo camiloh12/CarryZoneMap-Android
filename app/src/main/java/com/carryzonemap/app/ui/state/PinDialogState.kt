@@ -17,7 +17,8 @@ sealed class PinDialogState {
     /**
      * Dialog is shown for creating a new pin.
      *
-     * @property name The name of the POI this pin belongs to
+     * @property poiName The name of the POI this pin belongs to (null if manually placed)
+     * @property typedName The name typed by the user (used when poiName is null)
      * @property location The location where the pin will be created
      * @property selectedStatus The currently selected status (default: ALLOWED)
      * @property selectedRestrictionTag The selected restriction tag (required if status is NO_GUN)
@@ -25,7 +26,8 @@ sealed class PinDialogState {
      * @property hasPostedSignage Whether posted "no guns" signage is visible
      */
     data class Creating(
-        val name: String,
+        val poiName: String?,
+        val typedName: String = "",
         val location: Location,
         val selectedStatus: PinStatus = PinStatus.ALLOWED,
         val selectedRestrictionTag: RestrictionTag? = null,
