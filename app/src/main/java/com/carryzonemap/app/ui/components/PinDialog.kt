@@ -42,6 +42,22 @@ import com.carryzonemap.app.domain.model.PinStatus
 import com.carryzonemap.app.domain.model.RestrictionTag
 import com.carryzonemap.app.ui.state.PinDialogState
 
+// UI Constants
+private const val DROPDOWN_MENU_WIDTH_FRACTION = 0.9f
+
+/**
+ * Callbacks for PinDialog interactions.
+ */
+data class PinDialogCallbacks(
+    val onStatusSelected: (PinStatus) -> Unit,
+    val onRestrictionTagSelected: (RestrictionTag?) -> Unit,
+    val onSecurityScreeningChanged: (Boolean) -> Unit,
+    val onPostedSignageChanged: (Boolean) -> Unit,
+    val onConfirm: () -> Unit,
+    val onDelete: () -> Unit,
+    val onDismiss: () -> Unit,
+)
+
 /**
  * Dropdown menu width as a fraction of parent width.
  */

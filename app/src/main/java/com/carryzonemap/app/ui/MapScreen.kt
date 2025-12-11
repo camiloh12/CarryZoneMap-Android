@@ -38,6 +38,7 @@ import com.carryzonemap.app.BuildConfig
 import com.carryzonemap.app.domain.mapper.PinMapper.toFeatures
 import com.carryzonemap.app.map.FeatureLayerManager
 import com.carryzonemap.app.ui.components.PinDialog
+import com.carryzonemap.app.ui.components.PinDialogCallbacks
 import com.carryzonemap.app.ui.map.CameraController
 import com.carryzonemap.app.ui.map.FeatureClickHandler
 import com.carryzonemap.app.ui.map.LocationComponentManager

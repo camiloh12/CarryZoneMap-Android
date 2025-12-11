@@ -52,11 +52,15 @@ complexity:
     threshold: 4
   TooManyFunctions:
     active: true
-    thresholdInFiles: 20  # ViewModels can have many functions
+    thresholdInFiles: 20
     thresholdInClasses: 20
     thresholdInInterfaces: 11
     thresholdInObjects: 11
     thresholdInEnums: 11
+    ignoreAnnotated: ['HiltViewModel']  # ViewModels naturally have many functions for user interactions
+    ignoreDeprecated: false
+    ignorePrivate: false
+    ignoreOverridden: false
 
 coroutines:
   active: true

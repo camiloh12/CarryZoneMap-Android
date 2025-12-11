@@ -1,17 +1,20 @@
 # Branch Protection Setup Guide
 
-This guide explains how to protect your `master` branch to prevent accidental releases and enforce code review through pull requests.
+This guide explains how to protect your `master` and `develop` branches to prevent accidental releases and enforce code review through pull requests.
 
 ## Why Branch Protection?
 
 Branch protection rules ensure that:
-- ✅ No one can accidentally push directly to `master`
+- ✅ No one can accidentally push directly to `master` or `develop`
 - ✅ All changes go through pull request review
 - ✅ CI tests must pass before merging
 - ✅ Code quality is maintained through peer review
-- ✅ Accidental deployments to Closed Testing - Alpha are prevented
+- ✅ Accidental deployments to Closed Testing - Alpha are prevented (master)
+- ✅ Integration branch remains stable (develop)
 
-**Important:** Since your CD pipeline automatically deploys on every push to `master`, protecting this branch is critical to prevent unintended releases.
+**Important:**
+- **`master`**: CD pipeline automatically deploys on every merge - protection prevents unintended releases
+- **`develop`**: Main integration branch - protection ensures only tested code is integrated
 
 ## Setting Up Branch Protection Rules
 
@@ -22,7 +25,13 @@ Branch protection rules ensure that:
 3. In the left sidebar, click **Branches** (under "Code and automation")
 4. Under "Branch protection rules", click **Add rule** or **Add branch protection rule**
 
-### Step 2: Configure Protection for Master Branch
+### Step 2: Configure Protection Rules
+
+You need to create **TWO separate protection rules** - one for `master` and one for `develop`.
+
+---
+
+## Protection Rule #1: Master Branch
 
 #### Basic Settings
 
@@ -72,20 +81,79 @@ Check the following options:
 **Allow deletions**
 - ⬜ **Leave disabled** - Prevents accidental branch deletion
 
-### Step 3: Save Protection Rules
+### Step 3: Save Master Protection Rule
 
 1. Scroll to the bottom
 2. Click **Create** (or **Save changes** if editing existing rule)
 
+---
+
+## Protection Rule #2: Develop Branch
+
+Now create a second protection rule for the `develop` branch.
+
+#### Basic Settings
+
+1. Click **Add rule** again (to create a second rule)
+2. **Branch name pattern**: Enter `develop`
+
+#### Required Settings (Recommended)
+
+Check the following options:
+
+**Require a pull request before merging**
+- ✅ **Enable this** - Enforces PR workflow from feature branches
+- Set **Required approvals**: `1` (at least one reviewer must approve)
+- Optional sub-settings:
+  - ✅ **Dismiss stale pull request approvals when new commits are pushed** - Re-review required after changes
+  - ✅ **Require review from Code Owners** - If you have a CODEOWNERS file
+  - ⬜ **Require approval of the most recent reviewable push** - Stricter but can slow down development
+
+**Require status checks to pass before merging**
+- ✅ **Enable this** - CI must pass before merge
+- ✅ **Require branches to be up to date before merging** - Prevent merge conflicts
+- In the search box, add required status checks:
+  - Search for `Build and Test` (from your CI workflow)
+  - Click it to add as required check
+  - This ensures all PRs to `develop` run: build + tests + lint + detekt + ktlint
+
+**Require conversation resolution before merging**
+- ✅ **Enable this** - All PR comments must be resolved
+
+**Do not allow bypassing the above settings**
+- ✅ **Enable this** - Even admins must follow the rules
+- Alternative: Leave unchecked if you need emergency bypass capability
+
+#### Additional Recommended Settings
+
+**Require linear history**
+- ✅ **Enable this** - Keeps git history clean (requires rebase or squash merge)
+
+**Allow force pushes**
+- ⬜ **Leave disabled** - Prevents force pushes that could break history
+
+**Allow deletions**
+- ⬜ **Leave disabled** - Prevents accidental branch deletion
+
+### Step 4: Save Develop Protection Rule
+
+1. Scroll to the bottom
+2. Click **Create**
+
+---
+
 ## Verification
 
-After setting up, try to push directly to master:
+After setting up both protection rules, verify they're working:
+
+### Test Master Protection
 
 ```bash
 git checkout master
+git pull origin master
 echo "test" >> test.txt
 git add test.txt
-git commit -m "Test direct push"
+git commit -m "Test direct push to master"
 git push origin master
 ```
 
@@ -95,16 +163,50 @@ remote: error: GH006: Protected branch update failed for refs/heads/master.
 remote: error: Changes must be made through a pull request.
 ```
 
-✅ This confirms protection is working correctly!
+✅ Master protection is working!
+
+### Test Develop Protection
+
+```bash
+git checkout develop
+git pull origin develop
+echo "test" >> test.txt
+git add test.txt
+git commit -m "Test direct push to develop"
+git push origin develop
+```
+
+You should see the same error:
+```
+remote: error: GH006: Protected branch update failed for refs/heads/develop.
+remote: error: Changes must be made through a pull request.
+```
+
+✅ Develop protection is working!
+
+### Clean Up Test
+
+If you created test commits, reset your local branches:
+
+```bash
+git checkout master
+git reset --hard origin/master
+git checkout develop
+git reset --hard origin/develop
+```
 
 ## Recommended Workflow
 
-### For Regular Development
+**⚠️ Important: Never push directly to `master` or `develop`!**
 
-1. **Create a feature branch**:
+See [GIT_FLOW.md](GIT_FLOW.md) for complete git flow documentation. Quick overview:
+
+### For New Features
+
+1. **Create a feature branch from develop**:
    ```bash
-   git checkout master
-   git pull origin master
+   git checkout develop
+   git pull origin develop
    git checkout -b feature/my-new-feature
    ```
 
@@ -116,15 +218,15 @@ remote: error: Changes must be made through a pull request.
    git push origin feature/my-new-feature
    ```
 
-3. **Create Pull Request**:
+3. **Create Pull Request to develop**:
    - Go to GitHub repository
    - Click **Pull requests** → **New pull request**
-   - Base: `master`, Compare: `feature/my-new-feature`
+   - **Base: `develop`**, Compare: `feature/my-new-feature`
    - Fill in description
    - Click **Create pull request**
 
 4. **Wait for CI checks to pass**:
-   - GitHub Actions will run your tests automatically
+   - GitHub Actions will run: build + tests + lint + detekt + ktlint
    - All checks must pass (green checkmarks)
 
 5. **Request review** (if required):
@@ -135,22 +237,68 @@ remote: error: Changes must be made through a pull request.
    - Click **Squash and merge** (recommended) or **Merge pull request**
    - Delete the feature branch after merging
 
-7. **Automatic deployment**:
-   - When PR is merged to `master`, CD pipeline automatically deploys to Closed Testing - Alpha
-   - Monitor the deployment in GitHub Actions
+### For Releases
+
+1. **Create release branch from develop**:
+   ```bash
+   git checkout develop
+   git pull origin develop
+   git checkout -b release/v1.0.0
+   ```
+
+2. **Update version numbers and release notes**:
+   ```bash
+   # Edit app/build.gradle.kts (versionName, versionCode)
+   # Update CHANGELOG.md
+   git add .
+   git commit -m "chore: Bump version to 1.0.0"
+   git push origin release/v1.0.0
+   ```
+
+3. **Create PR to develop** (merge release changes back):
+   - Base: `develop`, Compare: `release/v1.0.0`
+   - Merge when approved
+
+4. **Create PR to master** (deploy to production):
+   - Base: `master`, Compare: `release/v1.0.0`
+   - Merge when approved
+   - **This triggers automatic deployment to Google Play Closed Testing - Alpha!**
+
+5. **Tag the release**:
+   ```bash
+   git checkout master
+   git pull origin master
+   git tag -a v1.0.0 -m "Release version 1.0.0"
+   git push origin v1.0.0
+   ```
 
 ### For Hotfixes
 
-Same workflow, but use a `hotfix/` branch:
+1. **Create hotfix branch from master**:
+   ```bash
+   git checkout master
+   git pull origin master
+   git checkout -b hotfix/critical-bug-fix
+   ```
 
-```bash
-git checkout master
-git pull origin master
-git checkout -b hotfix/critical-bug-fix
-# Make fixes
-git push origin hotfix/critical-bug-fix
-# Create PR, merge when approved
-```
+2. **Make fixes and update version**:
+   ```bash
+   # Make fixes
+   git add .
+   git commit -m "hotfix: Fix critical bug"
+   # Update version (patch bump)
+   git add app/build.gradle.kts
+   git commit -m "chore: Bump version to 1.0.1"
+   git push origin hotfix/critical-bug-fix
+   ```
+
+3. **Create PR to master** (deploy fix):
+   - Base: `master`, Compare: `hotfix/critical-bug-fix`
+   - Merge when approved (triggers deployment)
+
+4. **Create PR to develop** (bring fix back):
+   - Base: `develop`, Compare: `hotfix/critical-bug-fix`
+   - Merge when approved
 
 ## Branch Naming Conventions
 
@@ -179,17 +327,23 @@ If you absolutely need to bypass protection rules in an emergency:
 
 ## Integrating with CI/CD
 
-Your workflow already integrates with this setup:
+Your workflow integrates with branch protection:
 
 1. **CI Workflow** (`.github/workflows/ci.yml`):
-   - Runs on all PRs to `master`
-   - Runs tests, lint, builds debug APK
-   - Must pass before PR can be merged
+   - **Triggers**: PRs to `develop` OR `master`
+   - **Checks**: Build + Unit Tests + Lint + Detekt + KtLint
+   - **Result**: All checks must pass before PR can be merged
+   - **Purpose**: Ensures code quality before integration
 
 2. **CD Workflow** (`.github/workflows/deploy.yml`):
-   - Triggers only when changes are pushed/merged to `master`
-   - Automatically deploys to Closed Testing - Alpha
-   - Only happens after PR is approved and merged
+   - **Triggers**: Pushes/merges to `master` branch ONLY
+   - **Actions**: Build release AAB, upload to Google Play Closed Testing - Alpha
+   - **Result**: Automatic deployment to testers
+   - **Purpose**: Automated releases when code is merged to production
+
+**Flow**:
+- Feature → Develop PR: CI runs (build/test/lint/detekt/ktlint)
+- Release → Master PR: CI runs, then CD deploys after merge
 
 ## Additional Security: CODEOWNERS File
 
@@ -248,9 +402,9 @@ If your branch is behind `master`:
 
 ## Summary
 
-✅ **Recommended Protection Setup:**
+✅ **Recommended Protection Setup (for both `master` and `develop`):**
 - Require pull requests before merging (1 approval minimum)
-- Require status checks to pass (CI workflow)
+- Require status checks to pass (CI workflow: build + tests + lint + detekt + ktlint)
 - Require conversation resolution
 - Do not allow bypassing (or allow for admins only)
 - Require linear history
@@ -258,16 +412,27 @@ If your branch is behind `master`:
 - Disable branch deletion
 
 ✅ **Result:**
-- No accidental pushes to `master`
-- All changes reviewed before deployment
-- CI tests always pass before merge
-- Clean git history
-- Safe, controlled releases to Closed Testing - Alpha
+- ✅ No accidental pushes to `master` or `develop`
+- ✅ All changes reviewed before integration/deployment
+- ✅ CI checks always pass before merge
+- ✅ Clean git history with atomic commits
+- ✅ Safe, controlled releases to Google Play
+
+**Branch Purposes:**
+- **`master`**: Production code, triggers CD to Google Play
+- **`develop`**: Integration branch for features
+- **Feature branches**: Development work (feature/*, bugfix/*, etc.)
+- **Release branches**: Version preparation before production
 
 ---
 
 **Next Steps:**
-1. Set up branch protection rules following this guide
-2. Test by trying to push directly to `master` (should fail)
-3. Practice the PR workflow with a small change
+1. Set up protection rules for **both** `master` and `develop` following this guide
+2. Test by trying to push directly to each branch (should fail)
+3. Practice the git flow workflow (see [GIT_FLOW.md](GIT_FLOW.md))
 4. Update your team on the new process
+
+**See Also:**
+- [GIT_FLOW.md](GIT_FLOW.md) - Complete git flow documentation
+- [CD_SETUP.md](CD_SETUP.md) - Continuous deployment setup
+- [CLAUDE.md](CLAUDE.md) - Project architecture and development guidelines

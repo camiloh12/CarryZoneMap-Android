@@ -89,7 +89,7 @@ object UsBoundaryValidator {
             }
         }
 
-        return false
+        return !isInHole // Point is in polygon and not in any hole
     }
 
     /**
