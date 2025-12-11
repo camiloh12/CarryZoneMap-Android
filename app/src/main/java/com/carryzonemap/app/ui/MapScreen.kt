@@ -38,7 +38,6 @@ import com.carryzonemap.app.BuildConfig
 import com.carryzonemap.app.domain.mapper.PinMapper.toFeatures
 import com.carryzonemap.app.map.FeatureLayerManager
 import com.carryzonemap.app.ui.components.PinDialog
-import com.carryzonemap.app.ui.components.PinDialogCallbacks
 import com.carryzonemap.app.ui.map.CameraController
 import com.carryzonemap.app.ui.map.FeatureClickHandler
 import com.carryzonemap.app.ui.map.LocationComponentManager
@@ -177,15 +176,14 @@ fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
             // Pin creation/editing dialog
             PinDialog(
                 dialogState = uiState.pinDialogState,
-                callbacks = PinDialogCallbacks(
-                    onStatusSelected = { status -> viewModel.onDialogStatusSelected(status) },
-                    onRestrictionTagSelected = { tag -> viewModel.onDialogRestrictionTagSelected(tag) },
-                    onSecurityScreeningChanged = { hasScreening -> viewModel.onDialogSecurityScreeningChanged(hasScreening) },
-                    onPostedSignageChanged = { hasSignage -> viewModel.onDialogPostedSignageChanged(hasSignage) },
-                    onConfirm = { viewModel.confirmPinDialog() },
-                    onDelete = { viewModel.deletePinFromDialog() },
-                    onDismiss = { viewModel.dismissPinDialog() },
-                ),
+                onNameChanged = { name -> viewModel.onDialogNameChanged(name) },
+                onStatusSelected = { status -> viewModel.onDialogStatusSelected(status) },
+                onRestrictionTagSelected = { tag -> viewModel.onDialogRestrictionTagSelected(tag) },
+                onSecurityScreeningChanged = { hasScreening -> viewModel.onDialogSecurityScreeningChanged(hasScreening) },
+                onPostedSignageChanged = { hasSignage -> viewModel.onDialogPostedSignageChanged(hasSignage) },
+                onConfirm = { viewModel.confirmPinDialog() },
+                onDelete = { viewModel.deletePinFromDialog() },
+                onDismiss = { viewModel.dismissPinDialog() },
             )
         }
     }
@@ -429,6 +427,16 @@ private fun initializeMap(
     map.addOnMapClickListener { point ->
         Timber.d("Map clicked at: ${point.latitude}, ${point.longitude}")
         helpers.featureClickHandler.handleClick(map, point)
+    }
+
+    // Set up long-press handler for manual pin creation
+    map.addOnMapLongClickListener { point ->
+        Timber.d("Map long-pressed at: ${point.latitude}, ${point.longitude}")
+        viewModel.showCreatePinDialogManual(
+            longitude = point.longitude,
+            latitude = point.latitude,
+        )
+        true // Consume the event
     }
 
     Timber.d("Map initialization complete!")

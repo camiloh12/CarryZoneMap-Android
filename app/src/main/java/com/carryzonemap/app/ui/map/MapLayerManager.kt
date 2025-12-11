@@ -24,7 +24,10 @@ class MapLayerManager {
      * @param context Android context for loading GeoJSON assets
      * @param style MapLibre style to add the overlay to
      */
-    fun addUsBoundaryOverlay(context: android.content.Context, style: Style) {
+    fun addUsBoundaryOverlay(
+        context: android.content.Context,
+        style: Style,
+    ) {
         try {
             // Generate the overlay feature (world with US cutouts using actual boundaries)
             Timber.d("Generating US boundary overlay polygon with actual boundaries...")

@@ -28,7 +28,6 @@ import org.robolectric.RobolectricTestRunner
  */
 @RunWith(RobolectricTestRunner::class)
 class FeatureClickHandlerTest {
-
     private lateinit var clickHandler: FeatureClickHandler
     private lateinit var mockViewModel: MapViewModel
     private lateinit var mockMap: MapLibreMap
@@ -55,12 +54,14 @@ class FeatureClickHandlerTest {
 
     @Test
     fun `ExistingPinDetector handles click on user pin`() {
-        val pinFeature = createFeature(
-            properties = mapOf(
-                MapConstants.PROPERTY_FEATURE_ID to "pin-123",
-                MapConstants.PROPERTY_COLOR_STATE to MapConstants.COLOR_STATE_GREEN
+        val pinFeature =
+            createFeature(
+                properties =
+                    mapOf(
+                        MapConstants.PROPERTY_FEATURE_ID to "pin-123",
+                        MapConstants.PROPERTY_COLOR_STATE to MapConstants.COLOR_STATE_GREEN,
+                    ),
             )
-        )
         whenever(mockMap.queryRenderedFeatures(screenPoint, MapConstants.USER_PINS_LAYER_ID))
             .thenReturn(listOf(pinFeature))
 
@@ -83,12 +84,14 @@ class FeatureClickHandlerTest {
 
     @Test
     fun `ExistingPinDetector ignores pin feature without ID property`() {
-        val pinFeature = createFeature(
-            properties = mapOf(
-                MapConstants.PROPERTY_COLOR_STATE to MapConstants.COLOR_STATE_GREEN
-                // Missing PROPERTY_FEATURE_ID
+        val pinFeature =
+            createFeature(
+                properties =
+                    mapOf(
+                        MapConstants.PROPERTY_COLOR_STATE to MapConstants.COLOR_STATE_GREEN,
+                        // Missing PROPERTY_FEATURE_ID
+                    ),
             )
-        )
         whenever(mockMap.queryRenderedFeatures(screenPoint, MapConstants.USER_PINS_LAYER_ID))
             .thenReturn(listOf(pinFeature))
 
@@ -104,11 +107,13 @@ class FeatureClickHandlerTest {
 
     @Test
     fun `OverpassPoiDetector handles click on POI layer`() {
-        val poiFeature = createFeature(
-            properties = mapOf(
-                MapConstants.PROPERTY_NAME to "Starbucks"
+        val poiFeature =
+            createFeature(
+                properties =
+                    mapOf(
+                        MapConstants.PROPERTY_NAME to "Starbucks",
+                    ),
             )
-        )
         whenever(mockMap.queryRenderedFeatures(screenPoint, MapConstants.USER_PINS_LAYER_ID))
             .thenReturn(emptyList())
         whenever(mockMap.queryRenderedFeatures(screenPoint, MapConstants.POI_LAYER_ID))
@@ -157,11 +162,13 @@ class FeatureClickHandlerTest {
 
     @Test
     fun `MapTilerPoiDetector handles click on base map POI with name property`() {
-        val baseMapFeature = createFeature(
-            properties = mapOf(
-                MapConstants.PROPERTY_NAME to "Central Park"
+        val baseMapFeature =
+            createFeature(
+                properties =
+                    mapOf(
+                        MapConstants.PROPERTY_NAME to "Central Park",
+                    ),
             )
-        )
         whenever(mockMap.queryRenderedFeatures(screenPoint, MapConstants.USER_PINS_LAYER_ID))
             .thenReturn(emptyList())
         whenever(mockMap.queryRenderedFeatures(screenPoint, MapConstants.POI_LAYER_ID))
@@ -181,12 +188,14 @@ class FeatureClickHandlerTest {
 
     @Test
     fun `MapTilerPoiDetector ignores features without valid name`() {
-        val baseMapFeature = createFeature(
-            properties = mapOf(
-                "some_other_property" to "value"
-                // No name properties
+        val baseMapFeature =
+            createFeature(
+                properties =
+                    mapOf(
+                        "some_other_property" to "value",
+                        // No name properties
+                    ),
             )
-        )
         whenever(mockMap.queryRenderedFeatures(screenPoint, MapConstants.USER_PINS_LAYER_ID))
             .thenReturn(emptyList())
         whenever(mockMap.queryRenderedFeatures(screenPoint, MapConstants.POI_LAYER_ID))
@@ -202,11 +211,13 @@ class FeatureClickHandlerTest {
 
     @Test
     fun `MapTilerPoiDetector ignores blank names`() {
-        val baseMapFeature = createFeature(
-            properties = mapOf(
-                MapConstants.PROPERTY_NAME to "   " // Blank string
+        val baseMapFeature =
+            createFeature(
+                properties =
+                    mapOf(
+                        MapConstants.PROPERTY_NAME to "   ", // Blank string
+                    ),
             )
-        )
         whenever(mockMap.queryRenderedFeatures(screenPoint, MapConstants.USER_PINS_LAYER_ID))
             .thenReturn(emptyList())
         whenever(mockMap.queryRenderedFeatures(screenPoint, MapConstants.POI_LAYER_ID))
@@ -226,12 +237,14 @@ class FeatureClickHandlerTest {
 
     @Test
     fun `Chain prioritizes user pins over POIs`() {
-        val pinFeature = createFeature(
-            properties = mapOf(MapConstants.PROPERTY_FEATURE_ID to "pin-123")
-        )
-        val poiFeature = createFeature(
-            properties = mapOf(MapConstants.PROPERTY_NAME to "Starbucks")
-        )
+        val pinFeature =
+            createFeature(
+                properties = mapOf(MapConstants.PROPERTY_FEATURE_ID to "pin-123"),
+            )
+        val poiFeature =
+            createFeature(
+                properties = mapOf(MapConstants.PROPERTY_NAME to "Starbucks"),
+            )
 
         // Both pin and POI present at click location
         whenever(mockMap.queryRenderedFeatures(screenPoint, MapConstants.USER_PINS_LAYER_ID))
@@ -248,12 +261,14 @@ class FeatureClickHandlerTest {
 
     @Test
     fun `Chain prioritizes Overpass POI over base map POI`() {
-        val overpassPoi = createFeature(
-            properties = mapOf(MapConstants.PROPERTY_NAME to "Overpass Coffee Shop")
-        )
-        val baseMapPoi = createFeature(
-            properties = mapOf(MapConstants.PROPERTY_NAME to "Base Map Park")
-        )
+        val overpassPoi =
+            createFeature(
+                properties = mapOf(MapConstants.PROPERTY_NAME to "Overpass Coffee Shop"),
+            )
+        val baseMapPoi =
+            createFeature(
+                properties = mapOf(MapConstants.PROPERTY_NAME to "Base Map Park"),
+            )
 
         whenever(mockMap.queryRenderedFeatures(screenPoint, MapConstants.USER_PINS_LAYER_ID))
             .thenReturn(emptyList())

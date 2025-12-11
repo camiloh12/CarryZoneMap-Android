@@ -25,6 +25,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,32 +42,36 @@ import com.carryzonemap.app.domain.model.PinStatus
 import com.carryzonemap.app.domain.model.RestrictionTag
 import com.carryzonemap.app.ui.state.PinDialogState
 
-// UI Constants
-private const val DROPDOWN_MENU_WIDTH_FRACTION = 0.9f
-
 /**
- * Callbacks for PinDialog interactions.
+ * Dropdown menu width as a fraction of parent width.
  */
-data class PinDialogCallbacks(
-    val onStatusSelected: (PinStatus) -> Unit,
-    val onRestrictionTagSelected: (RestrictionTag?) -> Unit,
-    val onSecurityScreeningChanged: (Boolean) -> Unit,
-    val onPostedSignageChanged: (Boolean) -> Unit,
-    val onConfirm: () -> Unit,
-    val onDelete: () -> Unit,
-    val onDismiss: () -> Unit,
-)
+private const val DROPDOWN_WIDTH_FRACTION = 0.9f
 
 /**
  * Dialog for creating or editing a pin.
  *
  * @param dialogState The current state of the dialog
- * @param callbacks Callbacks for dialog interactions
+ * @param onNameChanged Callback when the name text field changes (for manual pin creation)
+ * @param onStatusSelected Callback when a status is selected
+ * @param onRestrictionTagSelected Callback when a restriction tag is selected
+ * @param onSecurityScreeningChanged Callback when security screening checkbox changes
+ * @param onPostedSignageChanged Callback when posted signage checkbox changes
+ * @param onConfirm Callback when the confirm button is clicked
+ * @param onDelete Callback when the delete button is clicked (only shown for editing)
+ * @param onDismiss Callback when the dialog is dismissed
  */
+@Suppress("LongParameterList") // Composable requires all callbacks for proper state management
 @Composable
 fun PinDialog(
     dialogState: PinDialogState,
-    callbacks: PinDialogCallbacks,
+    onNameChanged: (String) -> Unit,
+    onStatusSelected: (PinStatus) -> Unit,
+    onRestrictionTagSelected: (RestrictionTag?) -> Unit,
+    onSecurityScreeningChanged: (Boolean) -> Unit,
+    onPostedSignageChanged: (Boolean) -> Unit,
+    onConfirm: () -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit,
 ) {
     when (dialogState) {
         is PinDialogState.Hidden -> {
@@ -77,14 +82,25 @@ fun PinDialog(
                 config =
                     PinDialogContentConfig(
                         title = "Create Pin",
-                        poiName = dialogState.name,
+                        poiName = dialogState.poiName,
+                        typedName = dialogState.typedName,
                         selectedStatus = dialogState.selectedStatus,
                         selectedRestrictionTag = dialogState.selectedRestrictionTag,
                         hasSecurityScreening = dialogState.hasSecurityScreening,
                         hasPostedSignage = dialogState.hasPostedSignage,
                         isEditing = false,
                     ),
-                callbacks = callbacks,
+                callbacks =
+                    PinDialogCallbacks(
+                        onNameChanged = onNameChanged,
+                        onStatusSelected = onStatusSelected,
+                        onRestrictionTagSelected = onRestrictionTagSelected,
+                        onSecurityScreeningChanged = onSecurityScreeningChanged,
+                        onPostedSignageChanged = onPostedSignageChanged,
+                        onConfirm = onConfirm,
+                        onDelete = onDelete,
+                        onDismiss = onDismiss,
+                    ),
             )
         }
         is PinDialogState.Editing -> {
@@ -93,13 +109,24 @@ fun PinDialog(
                     PinDialogContentConfig(
                         title = "Edit Pin",
                         poiName = dialogState.pin.name,
+                        typedName = "",
                         selectedStatus = dialogState.selectedStatus,
                         selectedRestrictionTag = dialogState.selectedRestrictionTag,
                         hasSecurityScreening = dialogState.hasSecurityScreening,
                         hasPostedSignage = dialogState.hasPostedSignage,
                         isEditing = true,
                     ),
-                callbacks = callbacks,
+                callbacks =
+                    PinDialogCallbacks(
+                        onNameChanged = onNameChanged,
+                        onStatusSelected = onStatusSelected,
+                        onRestrictionTagSelected = onRestrictionTagSelected,
+                        onSecurityScreeningChanged = onSecurityScreeningChanged,
+                        onPostedSignageChanged = onPostedSignageChanged,
+                        onConfirm = onConfirm,
+                        onDelete = onDelete,
+                        onDismiss = onDismiss,
+                    ),
             )
         }
     }
@@ -110,12 +137,27 @@ fun PinDialog(
  */
 private data class PinDialogContentConfig(
     val title: String,
-    val poiName: String,
+    val poiName: String?,
+    val typedName: String,
     val selectedStatus: PinStatus,
     val selectedRestrictionTag: RestrictionTag?,
     val hasSecurityScreening: Boolean,
     val hasPostedSignage: Boolean,
     val isEditing: Boolean,
+)
+
+/**
+ * Callbacks for the pin dialog interactions.
+ */
+private data class PinDialogCallbacks(
+    val onNameChanged: (String) -> Unit,
+    val onStatusSelected: (PinStatus) -> Unit,
+    val onRestrictionTagSelected: (RestrictionTag?) -> Unit,
+    val onSecurityScreeningChanged: (Boolean) -> Unit,
+    val onPostedSignageChanged: (Boolean) -> Unit,
+    val onConfirm: () -> Unit,
+    val onDelete: () -> Unit,
+    val onDismiss: () -> Unit,
 )
 
 @Composable
@@ -133,12 +175,25 @@ private fun PinDialogContent(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // Display POI name
-                Text(
-                    text = config.poiName,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                // Name section: show POI name or text field for manual entry
+                if (config.poiName != null) {
+                    // Display POI name (existing behavior)
+                    Text(
+                        text = config.poiName,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                } else if (!config.isEditing) {
+                    // Show text field for manual pin creation
+                    OutlinedTextField(
+                        value = config.typedName,
+                        onValueChange = callbacks.onNameChanged,
+                        label = { Text("Pin name") },
+                        placeholder = { Text("Enter a name for this location") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                }
 
                 Text(
                     text = "Select carry zone status:",
@@ -188,9 +243,10 @@ private fun PinDialogContent(
                         )
                         Text(
                             text = "Active security screening",
-                            modifier = Modifier.clickable {
-                                callbacks.onSecurityScreeningChanged(!config.hasSecurityScreening)
-                            },
+                            modifier =
+                                Modifier.clickable {
+                                    callbacks.onSecurityScreeningChanged(!config.hasSecurityScreening)
+                                },
                         )
                     }
 
@@ -204,9 +260,10 @@ private fun PinDialogContent(
                         )
                         Text(
                             text = "Posted signage visible",
-                            modifier = Modifier.clickable {
-                                callbacks.onPostedSignageChanged(!config.hasPostedSignage)
-                            },
+                            modifier =
+                                Modifier.clickable {
+                                    callbacks.onPostedSignageChanged(!config.hasPostedSignage)
+                                },
                         )
                     }
                 }
@@ -323,7 +380,7 @@ private fun RestrictionTagDropdown(
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = { expanded = false },
-        modifier = Modifier.fillMaxWidth(DROPDOWN_MENU_WIDTH_FRACTION),
+        modifier = Modifier.fillMaxWidth(DROPDOWN_WIDTH_FRACTION),
     ) {
         RestrictionTag.entries.forEach { tag ->
             DropdownMenuItem(

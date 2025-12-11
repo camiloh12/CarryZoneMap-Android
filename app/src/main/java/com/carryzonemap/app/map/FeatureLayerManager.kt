@@ -28,10 +28,11 @@ class FeatureLayerManager {
         style: Style,
         initialFeatures: List<Feature>,
     ) {
-        val source = GeoJsonSource(
-            MapConstants.USER_PINS_SOURCE_ID,
-            FeatureCollection.fromFeatures(initialFeatures.toTypedArray())
-        )
+        val source =
+            GeoJsonSource(
+                MapConstants.USER_PINS_SOURCE_ID,
+                FeatureCollection.fromFeatures(initialFeatures.toTypedArray()),
+            )
         style.addSource(source)
 
         val layer =
