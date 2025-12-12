@@ -1,9 +1,6 @@
-Version 0.2.1
+Version 0.3.0
 
 ✨ New:
-• US-only pin placement - pins can now only be dropped within the 50 US states and Washington DC
-
-🔧 Improvements:
-• Improved app stability and performance
-• Infrastructure updates for faster releases
-• Bug fixes and optimizations
+• Manual pin placement - long-press anywhere on the map to create pins
+• Custom location names - type your own names for unlisted businesses or private locations
+• Enhanced pin creation dialog with name input field
