@@ -1,12 +1,6 @@
-🎉 Version 0.2.0 - Restriction Tags Feature
+Version 0.3.0
 
-✨ New Features:
-• Restriction Tags - Now specify WHY carry is restricted at locations
-  - 10 categories: Government Buildings, Airport, School, Bar/Alcohol, etc.
-  - Optional enforcement details (security screening, posted signage)
-
-🐛 Bug Fixes:
-• Fixed email confirmation edge cases on desktop browsers
-
-⚠️ Important:
-This app provides community-sourced information and is not legal advice. Always verify carry laws yourself before carrying a firearm.
+✨ New:
+• Manual pin placement - long-press anywhere on the map to create pins
+• Custom location names - type your own names for unlisted businesses or private locations
+• Enhanced pin creation dialog with name input field

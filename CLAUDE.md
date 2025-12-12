@@ -27,6 +27,42 @@ This project uses **Git Flow** with protected branches:
 
 **See [BRANCH_PROTECTION.md](BRANCH_PROTECTION.md) for setting up branch protection rules.**
 
+## 📦 Release Preparation
+
+When preparing a release, you must update the following files:
+
+### Version Information
+Update version in `app/build.gradle.kts`:
+- `versionCode` - Increment by 1 for each release
+- `versionName` - Semantic version (e.g., "0.3.0")
+
+### Release Notes
+**IMPORTANT**: Update release notes in the **correct location**:
+
+✅ **Correct**: `distribution/whatsnew/en-US.txt` (picked up by CD pipeline)
+❌ **Wrong**: `app/src/main/play/release-notes/en-US/default.txt` (not used)
+
+The CD pipeline automatically reads `distribution/whatsnew/en-US.txt` when deploying to Google Play.
+
+**Format**:
+```
+Version X.Y.Z
+
+✨ New:
+• Feature descriptions
+
+🔧 Improvements:
+• Improvement descriptions
+```
+
+### Release Checklist
+1. Update `versionCode` and `versionName` in `app/build.gradle.kts`
+2. Update release notes in `distribution/whatsnew/en-US.txt`
+3. Build release APK: `./gradlew assembleRelease`
+4. Verify build succeeds
+5. Commit changes to release branch
+6. Create PR to merge to `develop` and `master`
+
 ## Build & Development Commands
 
 ### Building
