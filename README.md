@@ -148,6 +148,23 @@ See [EMAIL_CONFIRMATION_SETUP.md](./EMAIL_CONFIRMATION_SETUP.md) for complete de
 
 ## 🚀 Getting Started
 
+### 🚫 Developer Notice: Git Flow
+
+**Before making any changes, read [GIT_FLOW.md](./GIT_FLOW.md)!**
+
+This project uses **protected branches**:
+- **NEVER** push directly to `master` or `develop`
+- **ALWAYS** create feature branches from `develop`
+- **ALL** changes must go through pull requests with CI checks
+
+Quick workflow:
+```bash
+git checkout develop
+git checkout -b feature/my-feature
+# Make changes, commit, push
+# Create PR to develop (NOT master)
+```
+
 ### Prerequisites
 
 - **Android Studio**: Hedgehog (2023.1.1) or newer
@@ -598,27 +615,85 @@ offline-first sync logic."
 
 ## 📚 Documentation
 
-- **[SUPABASE_INTEGRATION_PLAN.md](./SUPABASE_INTEGRATION_PLAN.md)**: Complete plan for Supabase cloud sync (Phases 1-4 complete)
-- **[SUPABASE_PROGRESS.md](./SUPABASE_PROGRESS.md)**: Implementation progress and setup guide
-- **[EMAIL_CONFIRMATION_SETUP.md](./EMAIL_CONFIRMATION_SETUP.md)**: Email confirmation setup guide with Option 2 implemented
+### Development & Workflow
+- **[GIT_FLOW.md](./GIT_FLOW.md)**: **Git flow strategy and branching workflow (READ THIS FIRST!)**
+- **[BRANCH_PROTECTION.md](./BRANCH_PROTECTION.md)**: GitHub branch protection setup guide
+- **[CLAUDE.md](./CLAUDE.md)**: Guidance for Claude Code when working with this codebase
+
+### Architecture & Planning
 - **[REFACTORING_PLAN.md](./REFACTORING_PLAN.md)**: Original refactoring plan with phase breakdown
 - **[REFACTORING_SUMMARY.md](./REFACTORING_SUMMARY.md)**: Comprehensive summary of architectural changes
-- **[CLAUDE.md](./CLAUDE.md)**: Guidance for Claude Code when working with this codebase
 - **Architecture Guide**: See the Architecture section above
 - **API Documentation**: KDoc comments throughout the codebase
 
+### Backend Integration
+- **[SUPABASE_INTEGRATION_PLAN.md](./SUPABASE_INTEGRATION_PLAN.md)**: Complete plan for Supabase cloud sync (Phases 1-4 complete)
+- **[SUPABASE_PROGRESS.md](./SUPABASE_PROGRESS.md)**: Implementation progress and setup guide
+- **[EMAIL_CONFIRMATION_SETUP.md](./EMAIL_CONFIRMATION_SETUP.md)**: Email confirmation setup guide with Option 2 implemented
+
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow the existing architecture patterns:
+Contributions are welcome! Please follow the existing architecture patterns and git flow workflow.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Follow the existing code structure (domain/data/presentation)
-4. Write tests for new functionality
-5. Ensure the build passes (`./gradlew check`)
-6. Commit with clear messages
-7. Push to your branch
-8. Open a Pull Request
+### 🚫 IMPORTANT: Protected Branches
+
+**NEVER push directly to `master` or `develop` branches!**
+
+This project uses **Git Flow** with protected branches:
+- **`master`**: Production branch (auto-deploys to Google Play on merge)
+- **`develop`**: Integration branch (all features merge here first)
+- **Feature branches**: Where all development happens
+
+**Required Reading**: See [GIT_FLOW.md](./GIT_FLOW.md) for complete workflow documentation.
+
+### Contribution Workflow
+
+1. **Fork the repository** or create a feature branch from `develop`
+   ```bash
+   git checkout develop
+   git pull origin develop
+   git checkout -b feature/amazing-feature
+   ```
+
+2. **Follow the existing code structure** (domain/data/presentation)
+3. **Write tests** for new functionality (unit tests required)
+4. **Run all checks** before pushing:
+   ```bash
+   ./gradlew check  # Runs build + tests + lint + detekt + ktlint
+   ```
+
+5. **Commit with clear messages** using conventional commits:
+   - `feat: Add new feature`
+   - `fix: Fix bug description`
+   - `refactor: Refactor component`
+   - `test: Add tests for feature`
+   - `docs: Update documentation`
+
+6. **Push to your branch**
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+
+7. **Open a Pull Request to `develop`** (NOT `master`)
+   - Base: `develop`
+   - Compare: `feature/amazing-feature`
+   - Fill in PR description with changes and testing notes
+   - Wait for CI checks to pass (build + tests + lint + detekt + ktlint)
+   - Request review if needed
+
+8. **After approval and merge**, delete your feature branch
+   ```bash
+   git branch -d feature/amazing-feature
+   git push origin --delete feature/amazing-feature
+   ```
+
+### CI/CD Pipeline
+
+- **Pull Requests to `develop`**: Triggers CI checks (build + tests + lint + detekt + ktlint)
+- **Pull Requests to `master`**: Triggers CI checks, then CD deploys to Google Play after merge
+- **All checks must pass** before PR can be merged
+
+See [BRANCH_PROTECTION.md](./BRANCH_PROTECTION.md) for branch protection setup details.
 
 ### Code Style
 
@@ -648,4 +723,4 @@ camilo@kyberneticlabs.com
 
 **Built with ❤️ using modern Android architecture + cloud sync**
 
-*Last Updated: 2025-10-17 - MapScreen refactoring with SOLID/DRY principles*
+*Last Updated: 2025-11-16 - Implemented Git Flow with protected branches (master/develop) and comprehensive CI/CD*

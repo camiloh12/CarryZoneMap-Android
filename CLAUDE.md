@@ -6,6 +6,63 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 CCW Map is a modern Android app for mapping carry zones with **cloud synchronization**, built with Clean Architecture + MVVM + Offline-First Sync. The app was refactored from a basic MVP to production-ready architecture in October 2025, and Supabase integration was completed for authentication and real-time cloud sync. Key architectural decisions and completed work are documented in `REFACTORING_PLAN.md`, `REFACTORING_SUMMARY.md`, and `SUPABASE_PROGRESS.md`.
 
+## 🚫 Git Flow - CRITICAL RULES
+
+**NEVER push directly to `master` or `develop` branches!**
+
+This project uses **Git Flow** with protected branches:
+- **`master`**: Production branch (auto-deploys to Google Play on merge)
+- **`develop`**: Integration branch (all features merge here first)
+- **Feature branches**: Where all development happens (feature/*, bugfix/*, etc.)
+
+**Development Workflow:**
+1. Create feature branch from `develop`
+2. Make changes and push to feature branch
+3. Create PR to `develop` (CI runs: build + tests + lint + detekt + ktlint)
+4. After approval, merge to `develop`
+5. When ready for release, create `release/*` branch from `develop`
+6. Merge release to both `develop` AND `master` (triggers CD to Google Play)
+
+**See [GIT_FLOW.md](GIT_FLOW.md) for complete workflow documentation.**
+
+**See [BRANCH_PROTECTION.md](BRANCH_PROTECTION.md) for setting up branch protection rules.**
+
+## 📦 Release Preparation
+
+When preparing a release, you must update the following files:
+
+### Version Information
+Update version in `app/build.gradle.kts`:
+- `versionCode` - Increment by 1 for each release
+- `versionName` - Semantic version (e.g., "0.3.0")
+
+### Release Notes
+**IMPORTANT**: Update release notes in the **correct location**:
+
+✅ **Correct**: `distribution/whatsnew/en-US.txt` (picked up by CD pipeline)
+❌ **Wrong**: `app/src/main/play/release-notes/en-US/default.txt` (not used)
+
+The CD pipeline automatically reads `distribution/whatsnew/en-US.txt` when deploying to Google Play.
+
+**Format**:
+```
+Version X.Y.Z
+
+✨ New:
+• Feature descriptions
+
+🔧 Improvements:
+• Improvement descriptions
+```
+
+### Release Checklist
+1. Update `versionCode` and `versionName` in `app/build.gradle.kts`
+2. Update release notes in `distribution/whatsnew/en-US.txt`
+3. Build release APK: `./gradlew assembleRelease`
+4. Verify build succeeds
+5. Commit changes to release branch
+6. Create PR to merge to `develop` and `master`
+
 ## Build & Development Commands
 
 ### Building
@@ -781,6 +838,8 @@ When extending Supabase features:
 ## Files to Reference
 
 ### Architecture & Planning
+- `GIT_FLOW.md`: **Complete git flow workflow (feature/develop/release/master branching strategy)**
+- `BRANCH_PROTECTION.md`: **GitHub branch protection setup for master and develop**
 - `REFACTORING_PLAN.md`: Phase-by-phase refactoring details
 - `REFACTORING_SUMMARY.md`: What changed, why, and benefits
 - `SUPABASE_INTEGRATION_PLAN.md`: Complete Supabase integration roadmap (Phases 1-5)

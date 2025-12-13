@@ -1,10 +1,10 @@
 name: Android CI
 
 on:
-  push:
-    branches: [ master ]
   pull_request:
-    branches: [ master ]
+    branches:
+      - develop
+      - master
 
 jobs:
   build-and-test:
@@ -45,6 +45,12 @@ jobs:
     - name: Run Android Lint
       run: ./gradlew lint --stacktrace
 
+    - name: Run Detekt
+      run: ./gradlew detekt --stacktrace
+
+    - name: Run KtLint
+      run: ./gradlew ktlintCheck --stacktrace
+
     - name: Upload test reports
       if: failure()
       uses: actions/upload-artifact@v4
@@ -53,6 +59,8 @@ jobs:
         path: |
           app/build/reports/tests/**/*
           app/build/reports/lint-results*.html
+          app/build/reports/detekt/**/*
+          app/build/reports/ktlint/**/*
         retention-days: 7
 
     - name: Upload build artifacts
